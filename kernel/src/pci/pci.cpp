@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-void pci_check_bus(void *, uint8_t);
+void pci_print_bus(void *, uint8_t);
 
 inline bool pci_device_exists(PCI_HEADER* h) {
     return h->device_id != 0xffff;
@@ -89,7 +89,7 @@ void pci_print_function(uint8_t* base, uint8_t* function, uint8_t functionNum) {
     }
     
     if(h->class_code == 0x06 && h->subclass == 0x04) {
-        pci_check_bus(base, ((PCI_TO_PCI_BRIDGE*)h)->secondary_bus);
+        pci_print_bus(base, ((PCI_TO_PCI_BRIDGE*)h)->secondary_bus);
     } else {
         pci_print_all_bar(h);
     }

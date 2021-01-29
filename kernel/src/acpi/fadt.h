@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-static constexpr const char* FADT_SIGNATURE = "FADT";
+static constexpr const char* FADT_SIGNATURE = "FACP";
 
 // The Fixed ACPI Description Table
 // ACPI 6.4 p.147
@@ -29,6 +29,7 @@ typedef struct {
     uint8_t pm1_evt_len;
     uint8_t pm1_cnt_len;
     uint8_t pm2_cnt_len;
+    uint8_t pm_tmr_len;
     uint8_t gpe0_blk_len;
     uint8_t gpe1_blk_len;
     uint8_t gpe_base;

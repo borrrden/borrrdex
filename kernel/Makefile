@@ -9,7 +9,7 @@ ASMC = nasm
 LD = ld
 
 CFLAGS = -ffreestanding -fshort-wchar -g
-ASMFLAGS = 
+ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
 
 SRCDIR := src
