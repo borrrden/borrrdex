@@ -2,27 +2,18 @@
 #include "SimpleFont.h"
 #include "../uefi/FrameBuffer.h"
 
-#define CURSOR_COLOR 0xff0000cc
-#define CURSOR_TICKS 10
+#define CURSOR_COLOR 0xff00dd00
 
 BasicRenderer* GlobalRenderer;
 
-bool GlobalInitialized = false;
-static int TimerCount = 0;
-void BasicRenderer::TimerCallback() {
-    if(TimerCount < CURSOR_TICKS) {
-        GlobalRenderer->ShowCursor();
-    } else {
-        GlobalRenderer->ClearCursor();
+void BasicRenderer::tick(datetime_t* tm) {
+    _cursorVisible = !_cursorVisible;
+    if(_cursorVisible) {
+        ShowCursor();
+    } else  {
+        ClearCursor();
     }
-
-    TimerCount = (TimerCount + 1) % (CURSOR_TICKS * 2);
 }
-
-timer_chain_t BasicRenderer::TimerEntry = {
-    TimerCallback,
-    NULL
-};
 
 bool BasicRenderer::HasChar() {
     unsigned* pixPtr = (unsigned *)_targetFrameBuffer->baseAddress;
@@ -41,10 +32,7 @@ bool BasicRenderer::HasChar() {
 BasicRenderer::BasicRenderer(Framebuffer* targetFrameBuffer, PSF1_FONT* font) 
     :_targetFrameBuffer(targetFrameBuffer)
     ,_psf1Font(font) {
-        if(!GlobalInitialized) {
-            GlobalInitialized = true;
-            register_timer_cb(&TimerEntry);
-        }
+        
 }
 
 void BasicRenderer::Print(const char* str) {
@@ -54,14 +42,7 @@ void BasicRenderer::Print(const char* str) {
 void BasicRenderer::PrintN(const char* str, uint64_t len) {
     const char* chr = str;
     while(*chr && len-- > 0) {
-        PutChar(*chr, CursorPosition.x, CursorPosition.y);
-        CursorPosition.x += 8;
-        if(CursorPosition.x + 8 > _targetFrameBuffer->width) {
-            CursorPosition.x = 0;
-            CursorPosition.y += 16;
-        }
-
-        chr++;
+        PutChar(*chr++);
     }
 }
 
@@ -77,7 +58,7 @@ void BasicRenderer::ClearCurrent() {
 }
 
 void BasicRenderer::ShowCursor() {
-    if(TimerCount >= CURSOR_TICKS) {
+    if(!_cursorVisible) {
         return;
     }
     
@@ -112,9 +93,10 @@ void BasicRenderer::PutChar(char chr) {
     ClearCurrent();
 
     PutChar(chr, CursorPosition.x, CursorPosition.y);
-    CursorPosition.x += 8;
-    if(CursorPosition.x + 8 > _targetFrameBuffer->width) {
+    if(CursorPosition.x + 8 == _targetFrameBuffer->width) {
         Next();
+    } else {
+        CursorPosition.x += 8;
     }
 }
 
@@ -208,4 +190,12 @@ void BasicRenderer::Right() {
     ClearCursor();
     CursorPosition.x += 8;
     ShowCursor();
+}
+
+unsigned BasicRenderer::Width() const {
+    return _targetFrameBuffer->width;
+}
+
+unsigned BasicRenderer::Height() const {
+    return _targetFrameBuffer->height;
 }

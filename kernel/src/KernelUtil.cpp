@@ -4,6 +4,7 @@
 #include "interrupts/interrupts.h"
 #include "userinput/keyboard.h"
 #include "userinput/keymaps.h"
+#include "userinput/mouse.h"
 #include "io/io.h"
 
 constexpr uint32_t PIT_FREQUENCY = 1193180U;
@@ -47,46 +48,41 @@ static void PrepareMemory(BootInfo* bootInfo) {
 }
 
 IDTR idtr;
+void SetIDTGate(void(*handler)(struct interrupt_frame *), uint8_t entryOffset, uint8_t type_attr, uint8_t selector) {
+    IDTDescEntry* interrupt = (IDTDescEntry *)(idtr.offset + entryOffset * sizeof(IDTDescEntry));
+    interrupt->SetOffset((uint64_t)handler);
+    interrupt->type_attr = type_attr;
+    interrupt->ist = 0;
+    interrupt->selector = selector;
+}
+
 void PrepareInterrupts() {
     idtr.limit = 0x0FFFF;
     idtr.offset = (uint64_t)PageFrameAllocator::SharedAllocator()->RequestPage();
 
-    IDTDescEntry* int_PageFault = (IDTDescEntry *)(idtr.offset + 0x0E * sizeof(IDTDescEntry));
-    int_PageFault->SetOffset((uint64_t)PageFault_Handler);
-    int_PageFault->type_attr = IDT_TA_InterruptGate;
-    int_PageFault->selector = 0x08;
-
-    IDTDescEntry* int_DoubleFault = (IDTDescEntry *)(idtr.offset + 0x8 * sizeof(IDTDescEntry));
-    int_DoubleFault->SetOffset((uint64_t)DoubleFault_Handler);
-    int_DoubleFault->type_attr = IDT_TA_InterruptGate;
-    int_DoubleFault->selector = 0x08;
-
-    IDTDescEntry* int_GPFault = (IDTDescEntry *)(idtr.offset + 0xD * sizeof(IDTDescEntry));
-    int_GPFault->SetOffset((uint64_t)GPFault_Handler);
-    int_GPFault->type_attr = IDT_TA_InterruptGate;
-    int_GPFault->selector = 0x08;
-
-    IDTDescEntry* int_Keyboard = (IDTDescEntry *)(idtr.offset + 0x21 * sizeof(IDTDescEntry));
-    int_Keyboard->SetOffset((uint64_t)KeyboardInt_Handler);
-    int_Keyboard->type_attr = IDT_TA_InterruptGate;
-    int_Keyboard->selector = 0x08;
+    SetIDTGate(PageFault_Handler, 0x0E, IDT_TA_InterruptGate, 0x08);
+    SetIDTGate(DoubleFault_Handler, 0x08, IDT_TA_InterruptGate, 0x08);
+    SetIDTGate(GPFault_Handler, 0x0D, IDT_TA_InterruptGate, 0x08);
+    SetIDTGate(KeyboardInt_Handler, 0x21, IDT_TA_InterruptGate, 0x08);
+    SetIDTGate(TimerInt_Handler, 0x20, IDT_TA_InterruptGate, 0x08);
 
     outb(0x43, 0x36);
     uint16_t divisor = get_pit_divisor(20);
     outb(0x40, divisor & 0xFF);
     outb(0x40, divisor >> 8);
 
-    IDTDescEntry* int_Timer = (IDTDescEntry *)(idtr.offset + 0x20 * sizeof(IDTDescEntry));
-    int_Timer->SetOffset((uint64_t)TimerInt_Handler);
-    int_Timer->type_attr = IDT_TA_InterruptGate;
-    int_Timer->selector = 0x08;
+    SetIDTGate(RTCInt_Handler, 0x28, IDT_TA_InterruptGate, 0x08);
+
+    ps2_mouse_init();
+    SetIDTGate(MouseInt_Handler, 0x2C, IDT_TA_InterruptGate, 0x08);
+
 
     asm ("lidt %0" :: "m" (idtr));
 
     RemapPIC();
 
-    outb(PIC1_DATA, 0b11111100);
-    outb(PIC2_DATA, 0b11111111);
+    outb(PIC1_DATA, 0b11111001);
+    outb(PIC2_DATA, 0b11101110);
 
     asm ("sti");
 }

@@ -36,3 +36,20 @@ int memcmp(const void* aptr, const void* bptr, size_t n) {
 
     return 0;
 }
+
+void memcpy(void* dest, const void* src, size_t n) {
+    if(!((uintptr_t)dest & (sizeof(intptr_t) - 1)) && !((uintptr_t)src & sizeof(intptr_t) - 1)) {
+        uintptr_t* d = (uintptr_t *)dest;
+        uintptr_t* s = (uintptr_t *)src;
+        while(n >= sizeof(intptr_t)) {
+            *d++ = *s++;
+            n -= sizeof(intptr_t);
+        }
+    }
+
+    uint8_t* d = (uint8_t *)dest;
+    uint8_t* s = (uint8_t *)src;
+    while(n--) {
+        *d++ = *s++;
+    }
+}

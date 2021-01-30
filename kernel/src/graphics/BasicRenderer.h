@@ -2,6 +2,7 @@
 
 #include "../math.h"
 #include "../interrupts/interrupts.h"
+#include "../io/rtc.h"
 #include <stdint.h>
 
 class Framebuffer;
@@ -27,6 +28,11 @@ public:
     void ClearChar();
     
     Point CursorPosition {};
+    unsigned Width() const;
+    unsigned Height() const;
+    
+    void tick(datetime_t* tm);
+    uint16_t get_update_ticks() const { return rtc_get_interrupt_frequency_hz() / 2; };
 private:
     Framebuffer* _targetFrameBuffer;
     PSF1_FONT* _psf1Font;
@@ -38,8 +44,8 @@ private:
     void ShowCursor();
     bool HasChar();
 
-    static void TimerCallback();
-    static timer_chain_t TimerEntry;
+    bool _cursorVisible {false};
+
 };
 
 extern BasicRenderer* GlobalRenderer;

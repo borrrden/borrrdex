@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../io/rtc.h"
+
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
 #define PIC2_COMMAND 0xA0
@@ -15,7 +17,9 @@ __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame* frame)
 __attribute__((interrupt)) void DoubleFault_Handler(struct interrupt_frame* frame);
 __attribute__((interrupt)) void GPFault_Handler(struct interrupt_frame* frame);
 __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame* frame);
+__attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame* frame);
 __attribute__((interrupt)) void TimerInt_Handler(struct interrupt_frame* frame);
+__attribute__((interrupt)) void RTCInt_Handler(struct interrupt_frame* frame);
 
 typedef void(*TimerCallback)();
 typedef struct timer_chain timer_chain_t;
@@ -27,6 +31,19 @@ struct timer_chain {
 
 void register_timer_cb(timer_chain_t* chainEntry);
 void unregister_timer_cb(timer_chain_t* chainEntry);
+
+
+typedef void(*RTCCallback)(datetime_t* dt, void* context);
+typedef struct rtc_chain rtc_chain_t;
+
+struct rtc_chain {
+    RTCCallback cb;
+    void* context;
+    rtc_chain_t* next;
+};
+
+void register_rtc_cb(rtc_chain_t* chainEntry);
+void unregister_rtc_cb(rtc_chain_t* chainEntry);
 
 void RemapPIC();
 void PIC_EndMaster();

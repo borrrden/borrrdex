@@ -3,8 +3,6 @@
 #include "../cstr.h"
 
 constexpr size_t KernelHeapSize = 32;
-void* KernelHeap;
-void* UserHeap;
 
 PageFrameAllocator sAllocator;
 PageFrameAllocator* PageFrameAllocator::SharedAllocator() {
