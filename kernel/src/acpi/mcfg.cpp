@@ -7,12 +7,12 @@
 
 void mcfg_print(MCFG* mcfg) {
     if(memcmp(mcfg->h.signature, MCFG_SIGNATURE, 4) != 0 || !acpi_checksum_ok(mcfg, mcfg->h.length)) {
-        GlobalRenderer->Print(" [ERROR Corrupted]");
+        GlobalRenderer->Printf(" [ERROR Corrupted]");
         return;
     }
 
     GlobalRenderer->Next();
-    GlobalRenderer->Print("        PCI Devices:");
+    GlobalRenderer->Printf("        PCI Devices:");
     GlobalRenderer->Next();
     size_t entries = mcfg_entry_count(mcfg);
     for(int i = 0; i < entries; i++) {

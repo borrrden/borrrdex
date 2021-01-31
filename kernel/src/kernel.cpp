@@ -57,9 +57,21 @@ extern "C" void _start(BootInfo* bootInfo) {
     };
 
     register_rtc_cb(&renderChain);
-    print_init();
-    print("\r\nHello, World!\r\n");
-    print("Test\r\n");
+    uart_init();
+    uart_printf("\r\n");
+
+    uart_printf("Fun with printf\n\n");
+    uart_printf("Using the numbers 1, 2, 4, 8, 16, 32, 64, and 128\n\n");
+    uart_printf("Zero padded: %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u ->  %03u,  %03u,  %03u,  %03u,  %03u,  %03u,  %03u,  %03u\n",
+        1, 2, 4, 8, 16, 32, 64, 128);
+    uart_printf("Left padded: %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u ->  %3u,  %3u,  %3u,  %3u,  %3u,  %3u,  %3u,  %3u\n",
+        1, 2, 4, 8, 16, 32, 64, 128);
+    uart_printf("Right padded: %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u ->  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u\n",
+        1, 2, 4, 8, 16, 32, 64, 128);
+    uart_printf("Hex: %%x,  %%x,  %%x,  %%x,  %%x,  %%x,  %%x,  %%x ->  %x,  %x,  %x,  %x,  %x,  %x,  %x,  %x\n",
+        1, 2, 4, 8, 16, 32, 64, 128);
+    uart_printf("Octal: %%o,  %%o,  %%o,  %%o,  %%o,  %%o,  %%o,  %%o ->  %o,  %o,  %o,  %o,  %o,  %o,  %o,  %o\n",
+        1, 2, 4, 8, 16, 32, 64, 128);
 
     while(true) {
         asm("hlt");

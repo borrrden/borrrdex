@@ -1,10 +1,16 @@
 #include "BasicRenderer.h"
 #include "SimpleFont.h"
 #include "../uefi/FrameBuffer.h"
+#include "../io/io.h"
+#include <cstdarg>
 
 #define CURSOR_COLOR 0xff00dd00
 
 BasicRenderer* GlobalRenderer;
+
+void printf_putc_callback(char ch, void* ctx) {
+    ((BasicRenderer *)ctx)->PutChar(ch);
+}
 
 void BasicRenderer::tick(datetime_t* tm) {
     _cursorVisible = !_cursorVisible;
@@ -35,8 +41,13 @@ BasicRenderer::BasicRenderer(Framebuffer* targetFrameBuffer, PSF1_FONT* font)
         
 }
 
-void BasicRenderer::Print(const char* str) {
-    PrintN(str, UINT64_MAX);
+void BasicRenderer::Printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    __vprintf(printf_putc_callback, this, fmt, ap);
+
+    va_end(ap);
 }
 
 void BasicRenderer::PrintN(const char* str, uint64_t len) {
@@ -92,7 +103,11 @@ void BasicRenderer::ClearCursor() {
 void BasicRenderer::PutChar(char chr) {
     ClearCurrent();
 
-    PutChar(chr, CursorPosition.x, CursorPosition.y);
+    PutCharAt(chr, CursorPosition.x, CursorPosition.y);
+    if(chr == '\r' || chr == '\n') {
+        return;
+    }
+    
     if(CursorPosition.x + 8 == _targetFrameBuffer->width) {
         Next();
     } else {
@@ -100,7 +115,18 @@ void BasicRenderer::PutChar(char chr) {
     }
 }
 
-void BasicRenderer::PutChar(char chr, unsigned xOff, unsigned yOff) {
+void BasicRenderer::PutCharAt(char chr, unsigned xOff, unsigned yOff) {
+    if(chr == '\r') {
+        CursorPosition.x = 0;
+        return;
+    }
+
+    if(chr == '\n') {
+        // Unix style behavior
+        Next();
+        return;
+    }
+
     unsigned* pixPtr = (unsigned *)_targetFrameBuffer->baseAddress;
     char* fontPtr = (char *)_psf1Font->glyphBuffer + (chr * _psf1Font->psf1_header->charsize);
     for(unsigned long y = yOff; y < yOff + 16; y++) {

@@ -19,9 +19,9 @@ class BasicRenderer
 public:
     BasicRenderer(Framebuffer* targetFrameBuffer, PSF1_FONT* font);
 
-    void PutChar(char chr, unsigned xOff, unsigned yOff);
+    void PutCharAt(char chr, unsigned xOff, unsigned yOff);
     void PutChar(char chr);
-    void Print(const char* str);
+    void Printf(const char* str, ...);
     void PrintN(const char* str, uint64_t len);
     void Up();
     void Left();

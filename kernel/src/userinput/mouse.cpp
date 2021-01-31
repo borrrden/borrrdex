@@ -151,5 +151,5 @@ void ps2_mouse_process_packet() {
         MousePosition.y = GlobalRenderer->Height() - 16;
     }
 
-    GlobalRenderer->PutChar('a', MousePosition.x, MousePosition.y);
+    GlobalRenderer->PutCharAt('a', MousePosition.x, MousePosition.y);
 }

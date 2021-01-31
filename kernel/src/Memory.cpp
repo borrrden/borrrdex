@@ -53,3 +53,12 @@ void memcpy(void* dest, const void* src, size_t n) {
         *d++ = *s++;
     }
 }
+
+size_t strnlen(const char* str, size_t max) {
+    size_t ret = 0;
+    while(*str++ && max--) {
+        ret++;
+    }
+
+    return ret;
+}

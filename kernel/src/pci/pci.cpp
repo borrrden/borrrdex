@@ -63,29 +63,20 @@ bool pci_get_type(PCI_HEADER* h, const char** cls, const char ** subclass, const
 
 void pci_print_function(uint8_t* base, uint8_t* function, uint8_t functionNum) {
     PCI_HEADER* h = (PCI_HEADER *)function;
-    GlobalRenderer->Print("                Function ");
-    GlobalRenderer->Print(to_string((uint64_t)functionNum));
-    GlobalRenderer->Print(" -> Vendor ID: ");
-    GlobalRenderer->Print(to_hstring(h->vendor_id));
-    GlobalRenderer->Print(" / Device ID: ");
-    GlobalRenderer->Print(to_hstring(h->device_id));
-    GlobalRenderer->Print(" / Status: ");
-    GlobalRenderer->Print(to_string((uint64_t)h->status));
-    GlobalRenderer->Print(" / Type: \\\\");
+    GlobalRenderer->Printf("                Function %hhu -> Vendor ID: %hu / Device ID: %hu / Status: %hu / Type: \\\\",
+        functionNum, h->vendor_id, h->device_id, h->status);
     const char* c, *s, *p;
     if(pci_get_type(h, &c, &s, &p)) {
-        GlobalRenderer->Print(c);
+        GlobalRenderer->Printf("%s", c);
         if(s) {
-            GlobalRenderer->Print("\\");
-            GlobalRenderer->Print(s);
+            GlobalRenderer->Printf("\\%s", p);
         }
 
         if(p) {
-            GlobalRenderer->Print("\\");
-            GlobalRenderer->Print(p);
+            GlobalRenderer->Printf("\\%s", p);
         }
     } else {
-        GlobalRenderer->Print("[TYPE CORRUPT!]");
+        GlobalRenderer->Printf("[TYPE CORRUPT!]");
     }
     
     if(h->class_code == 0x06 && h->subclass == 0x04) {
@@ -101,8 +92,7 @@ void pci_print_device(uint8_t* base, uint8_t* device, uint8_t deviceNum) {
         return;
     }
 
-    GlobalRenderer->Print("              Device ");
-    GlobalRenderer->Print(to_string((uint64_t)deviceNum));
+    GlobalRenderer->Printf("              Device &hhu", deviceNum);
     GlobalRenderer->Next();
     pci_print_function(base, device, 0);
     GlobalRenderer->Next();
@@ -123,8 +113,7 @@ void pci_print_bus(void* base_address, uint8_t num) {
     uint8_t* bus = base + (num * 0x100000);
     uint8_t* device = bus;
 
-    GlobalRenderer->Print("            Bus ");
-    GlobalRenderer->Print(to_string((uint64_t)num));
+    GlobalRenderer->Printf("            Bus %hhu", num);
     GlobalRenderer->Next();
     for(uint8_t i = 0; i < 32; i++, device += 0x8000) {
         pci_print_device(base, device, i);
@@ -158,8 +147,7 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
                 h->command &= ~0x02;
             }
 
-            GlobalRenderer->Print("                  I/O BAR: 0x");
-            GlobalRenderer->Print(to_hstring((uint64_t)&addresses[i]));
+            GlobalRenderer->Printf("                  I/O BAR: 0x%X", (uint64_t)&addresses[i]);
 
             addresses[i] = 0xffffffff;
             uint32_t nextValue = addresses[i];
@@ -175,8 +163,7 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
                 h->command &= ~0x01;
             }
 
-            GlobalRenderer->Print("                  RAM BAR: 0x");
-            GlobalRenderer->Print(to_hstring((uint64_t)&addresses[i]));
+            GlobalRenderer->Printf("                  RAM BAR: 0x%X", (uint64_t)&addresses[i]);
             if(r1 & 0x4) {
                 i++;
                 uint64_t r2 = addresses[i];
@@ -197,11 +184,9 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
             }
         }
 
-        GlobalRenderer->Print(" (");
         const char* suffix;
-        GlobalRenderer->Print(to_string(Smallest(width, &suffix)));
-        GlobalRenderer->Print(suffix);
-        GlobalRenderer->Print(" used by device)");
+        uint64_t smallestWidth = Smallest(width, &suffix);
+        GlobalRenderer->Printf(" (%llu%s used by device)", smallestWidth, suffix);
     }
 }
 

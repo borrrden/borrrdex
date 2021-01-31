@@ -2,6 +2,7 @@
 #include "io.h"
 
 #include <cstdint>
+#include <cstdarg>
 
 constexpr uint16_t COM1 = 0x3f8;
 
@@ -9,7 +10,7 @@ int is_transmit_empty() {
    return inb(COM1 + 5) & 0x20;
 }
 
-void putc(char c) {
+void putc(char c, __attribute__((unused)) void* ctx) {
     while(is_transmit_empty() == 0) {
         // no-op
     }
@@ -17,7 +18,7 @@ void putc(char c) {
     outb(COM1, c);
 }
 
-int print_init() {
+int uart_init() {
     outb(COM1 + 1, 0x00);
     outb(COM1 + 3, 0x80);
     outb(COM1, 0x03);
@@ -29,13 +30,23 @@ int print_init() {
     return 0;
 }
 
-void print(const char* s) {
-    printn(s, __SIZE_MAX__);
+void uart_print(const char* s) {
+    uart_printn(s, __SIZE_MAX__);
 }
 
-void printn(const char* s, size_t len) {
+void uart_printn(const char* s, size_t len) {
     const char* cur = s;
     while(*s && len--) {
-        putc(*s++);
+        putc(*s++, NULL);
     }
+}
+
+int uart_printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    int ret = __vprintf(putc, NULL, fmt, ap);
+
+    va_end(ap);
+    return ret;
 }
