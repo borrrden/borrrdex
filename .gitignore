@@ -44,7 +44,8 @@
 
 # End of https://www.toptal.com/developers/gitignore/api/c++
 
-bin/
+**/bin/*
 lib/
 *.elf
 *.bin
+!**/zap-light16.psf

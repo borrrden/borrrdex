@@ -3,6 +3,7 @@
 #include "KernelUtil.h"
 #include "Memory.h"
 #include "io/rtc.h"
+#include "io/serial.h"
 #include "graphics/Clock.h"
 #include "userinput/mouse.h"
 
@@ -56,6 +57,9 @@ extern "C" void _start(BootInfo* bootInfo) {
     };
 
     register_rtc_cb(&renderChain);
+    print_init();
+    print("\r\nHello, World!\r\n");
+    print("Test\r\n");
 
     while(true) {
         asm("hlt");

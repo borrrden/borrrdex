@@ -181,7 +181,7 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
                 i++;
                 uint64_t r2 = addresses[i];
                 addresses[i-1] = addresses[i] = 0xffffffff;
-                uint64_t nextValue = addresses[i-1] + (addresses[i] << 32);
+                uint64_t nextValue = addresses[i-1] + ((uint64_t)addresses[i] << 32);
                 addresses[i-1] = r1;
                 addresses[i] = r2;
                 width = ~(nextValue & 0xFFFFFFFFFFFFFFF0) + 1;
@@ -205,6 +205,9 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+
 void pci_print_all_bar(PCI_HEADER* h)
 {
     uint8_t type = h->header_type & 0x7f;
@@ -216,3 +219,5 @@ void pci_print_all_bar(PCI_HEADER* h)
         pci_print_bar_at(h, b->bar, 2);
     }
 }
+
+#pragma GCC diagnostic pop
