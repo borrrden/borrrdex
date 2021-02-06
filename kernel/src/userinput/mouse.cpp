@@ -23,42 +23,42 @@ union MousePacket {
 
 void ps2_mouse_wait_output() {
     uint64_t timeout = 100000;
-    while(timeout-- && (inb(0x64) & 0x2)) {
-        io_wait();
+    while(timeout-- && (port_read_8(0x64) & 0x2)) {
+        port_yield();
     }
 }
 
 void ps2_mouse_wait_input() {
     uint64_t timeout = 100000;
-    while(timeout-- && !(inb(0x64) & 0x1)) {
-        io_wait();
+    while(timeout-- && !(port_read_8(0x64) & 0x1)) {
+        port_yield();
     }
 }
 
 void ps2_mouse_write(uint8_t value) {
     ps2_mouse_wait_output();
-    outb(0x64, 0xD4);
+    port_write_8(0x64, 0xD4);
     ps2_mouse_wait_output();
-    outb(0x60, value);
+    port_write_8(0x60, value);
 }
 
 uint8_t ps2_mouse_read() {
     ps2_mouse_wait_input();
-    return inb(0x60);
+    return port_read_8(0x60);
 }
 
 void ps2_mouse_init() {
-    outb(0x64, 0xA8);
+    port_write_8(0x64, 0xA8);
     ps2_mouse_wait_output();
-    outb(0x64, 0x20);
+    port_write_8(0x64, 0x20);
     ps2_mouse_wait_input();
 
-    uint8_t status = inb(0x60);
+    uint8_t status = port_read_8(0x60);
     status |= 0x2;
     ps2_mouse_wait_output();
-    outb(0x64, 0x60);
+    port_write_8(0x64, 0x60);
     ps2_mouse_wait_output();
-    outb(0x60, status);
+    port_write_8(0x60, status);
 
     ps2_mouse_write(0xF6);
     ps2_mouse_read();

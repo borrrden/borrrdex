@@ -7,7 +7,7 @@
 constexpr uint16_t COM1 = 0x3f8;
 
 int is_transmit_empty() {
-   return inb(COM1 + 5) & 0x20;
+   return port_read_8(COM1 + 5) & 0x20;
 }
 
 void putc(char c, __attribute__((unused)) void* ctx) {
@@ -15,17 +15,17 @@ void putc(char c, __attribute__((unused)) void* ctx) {
         // no-op
     }
 
-    outb(COM1, c);
+    port_write_8(COM1, c);
 }
 
 int uart_init() {
-    outb(COM1 + 1, 0x00);
-    outb(COM1 + 3, 0x80);
-    outb(COM1, 0x03);
-    outb(COM1 + 1, 0x00);
-    outb(COM1 + 3, 0x03);
-    outb(COM1 + 2, 0xC7);
-    outb(COM1 + 4, 0x0B);
+    port_write_8(COM1 + 1, 0x00);
+    port_write_8(COM1 + 3, 0x80);
+    port_write_8(COM1, 0x03);
+    port_write_8(COM1 + 1, 0x00);
+    port_write_8(COM1 + 3, 0x03);
+    port_write_8(COM1 + 2, 0xC7);
+    port_write_8(COM1 + 4, 0x0B);
 
     return 0;
 }

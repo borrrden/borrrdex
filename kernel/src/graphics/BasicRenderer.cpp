@@ -4,7 +4,8 @@
 #include "../io/io.h"
 #include <cstdarg>
 
-#define CURSOR_COLOR 0xff00dd00
+constexpr uint32_t CURSOR_COLOR = 0xff00dd00;
+constexpr uint8_t TABSTOP = 4;
 
 BasicRenderer* GlobalRenderer;
 
@@ -107,7 +108,7 @@ void BasicRenderer::PutChar(char chr) {
     if(chr == '\r' || chr == '\n') {
         return;
     }
-    
+
     if(CursorPosition.x + 8 == _targetFrameBuffer->width) {
         Next();
     } else {
@@ -124,6 +125,15 @@ void BasicRenderer::PutCharAt(char chr, unsigned xOff, unsigned yOff) {
     if(chr == '\n') {
         // Unix style behavior
         Next();
+        return;
+    }
+
+    if(chr == '\t') {
+        CursorPosition.x++;
+        while(CursorPosition.x % TABSTOP) {
+            CursorPosition.x++;
+        }
+
         return;
     }
 

@@ -91,8 +91,6 @@ Framebuffer* InitializeGOP() {
 		return NULL;
 	}
 
-	Print(L"GOP located\r\n");
-
 	framebuffer.baseAddress = (void *)gop->Mode->FrameBufferBase;
 	framebuffer.bufferSize = gop->Mode->FrameBufferSize;
 	framebuffer.width = gop->Mode->Info->HorizontalResolution;
@@ -119,21 +117,19 @@ typedef struct {
 	EFI_MEMORY_DESCRIPTOR* mMap;
 	UINTN mMapSize;
 	UINTN mMapDescriptorSize;
-	void* xdst;
+	void* rsdp;
 } BootInfo;
 
-void* FindXDST(EFI_SYSTEM_TABLE* st)
+void* FindRSDP(EFI_SYSTEM_TABLE* st)
 {
 	EFI_GUID acpi20 = ACPI_20_TABLE_GUID;
 	for(UINTN i = 0; i < st->NumberOfTableEntries; i++) {
 		EFI_CONFIGURATION_TABLE t = st->ConfigurationTable[i];
 		if(CompareGuid(&acpi20, &t.VendorGuid) == 0) {
-			Print(L"Found XDST structure, ACPI 2.0 can continue...");
 			return t.VendorTable;
 		}
 	}
 
-	Print(L"Error: ACPI not found!");
 	return NULL;
 }
 
@@ -143,6 +139,7 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	EFI_FILE* kernel = LoadFile(NULL, L"kernel.elf", ImageHandle, SystemTable);
 	if(!kernel) {
 		Print(L"Could not load kernel\r\n");
+		return EFI_LOAD_ERROR;
 	}
 
 	Elf64_Ehdr header;
@@ -165,6 +162,7 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 		header.e_version != EV_CURRENT
 	) {
 		Print(L"Kernel format is bad\r\n");
+		return EFI_UNSUPPORTED;
 	}
 
 	Elf64_Phdr* phdrs;
@@ -182,8 +180,13 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 			case PT_LOAD:
 			{
 				int pages = (phdr->p_memsz + 0x1000 - 1) / 0x1000;
-				Elf64_Addr segment = phdr->p_paddr;
-				SystemTable->BootServices->AllocatePages(AllocateAddress, EfiLoaderData, pages, &segment);
+				Elf64_Addr segment = phdr->p_vaddr;
+				EFI_STATUS status = SystemTable->BootServices->AllocatePages(AllocateAddress, EfiLoaderData, pages, &segment);
+				if(status != EFI_SUCCESS) {
+					Print(L"Failed to allocate memory for kernel (%d)!", status);
+					return status;
+				}
+
 				kernel->SetPosition(kernel, phdr->p_offset);
 				UINTN size = phdr->p_filesz;
 				kernel->Read(kernel, &size, (void *)segment);
@@ -195,6 +198,7 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	PSF1_FONT* newFont = LoadPSF1Font(NULL, L"zap-light16.psf", ImageHandle, SystemTable);
 	if(!newFont) {
 		Print(L"Font is not valid or is not found\r\n");
+		return EFI_LOAD_ERROR;
 	}
 
 	Framebuffer* newBuffer = InitializeGOP();
@@ -215,7 +219,7 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 		map,
 		mapSize,
 		descriptorSize,
-		FindXDST(SystemTable)
+		FindRSDP(SystemTable)
 	};
 
 	SystemTable->BootServices->ExitBootServices(ImageHandle, mapKey);

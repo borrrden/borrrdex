@@ -17,11 +17,11 @@ typedef struct {
     uint8_t latency_timer;
     uint8_t header_type;
     uint8_t bist;
-} __attribute__((packed)) PCI_HEADER;
+} __attribute__((packed)) pci_header_t;
 
 typedef struct
 {
-    PCI_HEADER common;
+    pci_header_t common;
     uint32_t bar[6];
     uint32_t cardbus_cis_ptr;
     uint16_t subsystem_vendor_id;
@@ -34,11 +34,11 @@ typedef struct
     uint8_t interrupt_pin;
     uint8_t min_grant;
     uint8_t max_latency;
-} __attribute__((packed)) PCI_DEVICE;
+} __attribute__((packed)) pci_device_t;
 
 
 typedef struct {
-    PCI_HEADER common;
+    pci_header_t common;
     uint32_t bar[2];
     uint8_t primary_bus;
     uint8_t secondary_bus;
@@ -62,8 +62,8 @@ typedef struct {
     uint8_t interrupt_pin;
     uint16_t bridge_control;
 
-} __attribute__((packed)) PCI_TO_PCI_BRIDGE;
+} __attribute__((packed)) pci_to_pci_bridge_t;
 
-PCI_HEADER* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t function);
-void pci_print_all_bar(PCI_HEADER* h);
+pci_header_t* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t function);
+void pci_print_all_bar(pci_header_t* h);
 void pci_print_bus(void* base_address, uint8_t bus);

@@ -2,11 +2,9 @@
 #include "../graphics/BasicRenderer.h"
 #include "../cstr.h"
 
-constexpr size_t KernelHeapSize = 32;
-
 PageFrameAllocator sAllocator;
 PageFrameAllocator* PageFrameAllocator::SharedAllocator() {
-    return &sAllocator;
+     return &sAllocator;
 }
 
 void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mMapSize, size_t mMapDescSize) {
@@ -16,18 +14,13 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
 
     _initialized = true;
     uint64_t mMapEntries = mMapSize / mMapDescSize;
-    void* largestFreeMemSeg = NULL, *secondLargestFreeMemSeg = NULL;
-    size_t largestFreeMemSegSize = 0, secondLargestFreeMemSegSize = 0;
+    void* largestFreeMemSeg = NULL;
+    size_t largestFreeMemSegSize = 0;
 
     for(int i = 0; i < mMapEntries; i++) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR *)((uint64_t)mMap + i * mMapDescSize);
         if(desc->type == 7) { // type = EfiConventionalMemory
             if(desc->numPages * 4096 > largestFreeMemSegSize) {
-                if(largestFreeMemSegSize > secondLargestFreeMemSegSize) {
-                    secondLargestFreeMemSegSize = largestFreeMemSegSize;
-                    secondLargestFreeMemSeg = largestFreeMemSeg;
-                }
-
                 largestFreeMemSeg = desc->physAddr;
                 largestFreeMemSegSize = desc->numPages * 4096;
             }
@@ -38,8 +31,8 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
     _freeMemory = memorySize;
     uint64_t bitmapSize = memorySize / 4096 / 8 + 1;
 
-    InitBitmap(bitmapSize, secondLargestFreeMemSeg);
-    LockPages(secondLargestFreeMemSeg, _pageBitmap.GetSize() / 4096 + 1);
+    InitBitmap(bitmapSize, largestFreeMemSeg);
+    LockPages(largestFreeMemSeg, _pageBitmap.GetSize() / 4096 + 1);
 
     for(int i = 0; i < mMapEntries; i++) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR *)((uint64_t)mMap + i * mMapDescSize);

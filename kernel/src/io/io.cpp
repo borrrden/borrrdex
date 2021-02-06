@@ -2,31 +2,45 @@
 #include "../Memory.h"
 #include <stddef.h>
 
-void outb(uint16_t port, uint8_t value) {
-    asm volatile ("outb %0, %1" :: "a"(value), "Nd"(port));
-}
-
-uint8_t inb(uint16_t port) {
-    uint8_t retVal;
-    asm volatile ("inb %1, %0"
-    : "=a"(retVal)
-    : "Nd"(port));
-
-    return retVal;
-}
-
-void io_wait() {
+void port_yield() {
     asm volatile ("outb %%al, $0x80" :: "a"(0));
 }
 
-constexpr uint16_t SIGNED =		0x0001;	    /* Is argument signed */
+uint8_t port_read_8(uint16_t port) {
+    uint8_t retVal;
+    asm volatile ("inb %1, %0" : "=a"(retVal) : "dN"(port));
+    return retVal;
+}
+
+uint16_t port_read_16(uint16_t port) {
+    uint16_t retVal;
+    asm volatile ("inw %1, %0" : "=a"(retVal) : "dN"(port));
+    return retVal;
+}
+
+uint32_t port_read_32(uint16_t port) {
+    uint32_t retVal;
+    asm volatile ("inl %1, %0" : "=a"(retVal) : "dN"(port));
+    return retVal;
+}
+
+void port_write_8(uint16_t port, uint8_t value) {
+    asm volatile ("outb %1, %0" :: "dN"(port), "a"(value));
+}
+
+void port_write_16(uint16_t port, uint16_t value) {
+    asm volatile ("outw %1, %0" :: "dN"(port), "a"(value));
+}
+
+void port_write_32(uint16_t port, uint32_t value) {
+    asm volatile ("outl %1, %0" :: "dN"(port), "a"(value));
+}
+
 constexpr uint16_t LADJUST =	0x0004;		/* left adjustment */
-//constexpr uint16_t LONGDBL =	0x0008;		/* long double */
 constexpr uint16_t LONGINT =	0x0010;		/* long integer */
 constexpr uint16_t LLONGINT =   0x0020;		/* long long integer */
 constexpr uint16_t SHORTINT =	0x0040;		/* short integer */
 constexpr uint16_t ZEROPAD =	0x0080;		/* zero (as opposed to blank) pad */
-//constexpr uint16_t FPT =		0x0100;		/* Floating point number */
 constexpr uint16_t PTRINT =  	0x0200;		/* (unsigned) ptrdiff_t */
 constexpr uint16_t SIZEINT =	0x0400;		/* (signed) size_t */
 constexpr uint16_t CHARINT =	0x0800;		/* 8 bit integer */
@@ -57,6 +71,10 @@ void printn(putc_func_t putc, void* ctx, int flags, int width, const char* str, 
 void print_integer(putc_func_t putc, void* ctx, int flags, int width, uint64_t arg, int base = 10, char hexStart = 'A') {
     char buffer[23];
     uint8_t index = 22;
+    if(arg == 0) {
+        putc('0', ctx);
+        return;
+    }
 
      while(arg > 0) {
         uint8_t remainder = arg % base;

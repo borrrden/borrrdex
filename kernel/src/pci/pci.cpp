@@ -7,7 +7,7 @@
 
 void pci_print_bus(void *, uint8_t);
 
-inline bool pci_device_exists(PCI_HEADER* h) {
+inline bool pci_device_exists(pci_header_t* h) {
     return h->device_id != 0xffff;
 }
 
@@ -22,7 +22,7 @@ DeviceTypeEntry* pci_device_table_lookup(DeviceTypeEntry* table, size_t count, u
     return NULL;
 }
 
-bool pci_get_type(PCI_HEADER* h, const char** cls, const char ** subclass, const char** progif) {
+bool pci_get_type(pci_header_t* h, const char** cls, const char ** subclass, const char** progif) {
     *cls = NULL;
     *subclass = NULL;
     *progif = NULL;
@@ -62,14 +62,14 @@ bool pci_get_type(PCI_HEADER* h, const char** cls, const char ** subclass, const
 }
 
 void pci_print_function(uint8_t* base, uint8_t* function, uint8_t functionNum) {
-    PCI_HEADER* h = (PCI_HEADER *)function;
-    GlobalRenderer->Printf("                Function %hhu -> Vendor ID: %hu / Device ID: %hu / Status: %hu / Type: \\\\",
+    pci_header_t* h = (pci_header_t *)function;
+    GlobalRenderer->Printf("                Function %hhu -> Vendor ID: %x / Device ID: %x / Status: %hu / Type: \\\\",
         functionNum, h->vendor_id, h->device_id, h->status);
     const char* c, *s, *p;
     if(pci_get_type(h, &c, &s, &p)) {
         GlobalRenderer->Printf("%s", c);
         if(s) {
-            GlobalRenderer->Printf("\\%s", p);
+            GlobalRenderer->Printf("\\%s", s);
         }
 
         if(p) {
@@ -80,26 +80,26 @@ void pci_print_function(uint8_t* base, uint8_t* function, uint8_t functionNum) {
     }
     
     if(h->class_code == 0x06 && h->subclass == 0x04) {
-        pci_print_bus(base, ((PCI_TO_PCI_BRIDGE*)h)->secondary_bus);
+        pci_print_bus(base, ((pci_to_pci_bridge_t*)h)->secondary_bus);
     } else {
         pci_print_all_bar(h);
     }
 }
 
 void pci_print_device(uint8_t* base, uint8_t* device, uint8_t deviceNum) {
-    PCI_HEADER* h = (PCI_HEADER *)device;
+    pci_header_t* h = (pci_header_t *)device;
     if(!pci_device_exists(h)) {
         return;
     }
 
-    GlobalRenderer->Printf("              Device &hhu", deviceNum);
+    GlobalRenderer->Printf("              Device %hhu", deviceNum);
     GlobalRenderer->Next();
     pci_print_function(base, device, 0);
     GlobalRenderer->Next();
     if(h->header_type & 0x80) {
         device += 0x1000;
         for(uint8_t i = 1; i < 8; i++, device += 0x1000) {
-            h = (PCI_HEADER *)device;
+            h = (pci_header_t *)device;
             if(pci_device_exists(h)) {
                 pci_print_function(base, device, i);
                 GlobalRenderer->Next();
@@ -120,10 +120,10 @@ void pci_print_bus(void* base_address, uint8_t num) {
     }
 }
 
-PCI_HEADER* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t function) {
+pci_header_t* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t function) {
     uint8_t* p = (uint8_t *)cfgArea;
     p += bus * 0x100000 + device * 0x8000 + function * 0x1000;
-    PCI_HEADER* pci_header = (PCI_HEADER *)p;
+    pci_header_t* pci_header = (pci_header_t *)p;
     if(pci_header->device_id == INVALID_DEVICE) {
         return NULL;
     }
@@ -131,7 +131,7 @@ PCI_HEADER* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t f
     return pci_header;
 }
 
-void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
+void pci_print_bar_at(pci_header_t* h, uint32_t* addresses, size_t count) {
     for(size_t i = 0; i < count; i++) {
         uint64_t r1 = addresses[i];
         if(r1 == 0) {
@@ -193,14 +193,14 @@ void pci_print_bar_at(PCI_HEADER* h, uint32_t* addresses, size_t count) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 
-void pci_print_all_bar(PCI_HEADER* h)
+void pci_print_all_bar(pci_header_t* h)
 {
     uint8_t type = h->header_type & 0x7f;
     if(type == 0) {
-        PCI_DEVICE* d = (PCI_DEVICE *)h;
+        pci_device_t* d = (pci_device_t *)h;
         pci_print_bar_at(h, d->bar, 6);
     } else if(type == 1) {
-        PCI_TO_PCI_BRIDGE* b = (PCI_TO_PCI_BRIDGE *)h;
+        pci_to_pci_bridge_t* b = (pci_to_pci_bridge_t *)h;
         pci_print_bar_at(h, b->bar, 2);
     }
 }

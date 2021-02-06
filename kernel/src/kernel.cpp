@@ -1,11 +1,13 @@
 #include "acpi/xsdt.h"
 #include "acpi/fadt.h"
+#include "acpi/mcfg.h"
 #include "KernelUtil.h"
 #include "Memory.h"
 #include "io/rtc.h"
 #include "io/serial.h"
 #include "graphics/Clock.h"
 #include "userinput/mouse.h"
+#include "arch/x86_64/cpuid.h"
 
 #include <cstddef>
 
@@ -26,13 +28,19 @@ void render(datetime_t* dt, void* context) {
     if((tickCount % updateEntries->clock->get_update_ticks()) == 0) {
         updateEntries->clock->tick(dt);
     }
-
-    ps2_mouse_process_packet();
 }
 
 extern "C" void _start(BootInfo* bootInfo) {
+    uart_init();
+
     KernelInfo kernelInfo = InitializeKernel(bootInfo);
     PageTableManager* pageTableManager = kernelInfo.pageTableManager;
+
+    CPUIDFeatures features;
+    GlobalRenderer->Printf("CPU identifies as: %s (%s)\n", features.vendor(), features.brand());
+    GlobalRenderer->Printf("ECX1\t\t\tEDX1\t\tEBX7\t\tECX7\t\tECX81\t\tEDX81\n");
+    GlobalRenderer->Printf("SSE3: %d\tMSR: %d\tFSGSBASE: %d\tPREFETCHWT1: %d\tLAHF: %d\tSYSCALL: %d\n", 
+        features.SSE3(), features.MSR(), features.FSGSBASE(), features.PREFETCHWT1(), features.LAHF(), features.SYSCALL());
 
     if(bootInfo->rsdp) {
         XSDT* xsdt = (XSDT *)bootInfo->rsdp->xdst_address;
@@ -40,6 +48,11 @@ extern "C" void _start(BootInfo* bootInfo) {
         if(fadt && fadt_valid(fadt)) {
             century_register = fadt->century;
         }
+
+        // MCFG* mcfg = (MCFG *)xsdt_get_table(xsdt, MCFG_SIGNATURE);
+        // if(mcfg && mcfg_valid(mcfg)) {
+        //     mcfg_print(mcfg);
+        // }
     }
 
     Clock clk;
@@ -57,22 +70,6 @@ extern "C" void _start(BootInfo* bootInfo) {
     };
 
     register_rtc_cb(&renderChain);
-    uart_init();
-    uart_printf("\r\n");
-
-    uart_printf("Fun with printf\n\n");
-    uart_printf("Using the numbers 1, 2, 4, 8, 16, 32, 64, and 128\n\n");
-    uart_printf("Zero padded: %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u,  %%03u ->  %03u,  %03u,  %03u,  %03u,  %03u,  %03u,  %03u,  %03u\n",
-        1, 2, 4, 8, 16, 32, 64, 128);
-    uart_printf("Left padded: %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u,  %%3u ->  %3u,  %3u,  %3u,  %3u,  %3u,  %3u,  %3u,  %3u\n",
-        1, 2, 4, 8, 16, 32, 64, 128);
-    uart_printf("Right padded: %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u,  %%-3u ->  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u,  %-3u\n",
-        1, 2, 4, 8, 16, 32, 64, 128);
-    uart_printf("Hex: %%x,  %%x,  %%x,  %%x,  %%x,  %%x,  %%x,  %%x ->  %x,  %x,  %x,  %x,  %x,  %x,  %x,  %x\n",
-        1, 2, 4, 8, 16, 32, 64, 128);
-    uart_printf("Octal: %%o,  %%o,  %%o,  %%o,  %%o,  %%o,  %%o,  %%o ->  %o,  %o,  %o,  %o,  %o,  %o,  %o,  %o\n",
-        1, 2, 4, 8, 16, 32, 64, 128);
-
     while(true) {
         asm("hlt");
     }

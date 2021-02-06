@@ -1,5 +1,5 @@
 #include "KernelUtil.h"
-#include "gdt/gdt.h"
+#include "arch/x86_64/gdt/gdt.h"
 #include "interrupts/idt.h"
 #include "interrupts/interrupts.h"
 #include "userinput/keyboard.h"
@@ -20,10 +20,7 @@ static void PrepareMemory(BootInfo* bootInfo) {
     uint64_t mMapEntries = bootInfo->mMapSize / bootInfo->mMapDescriptorSize;
     PageFrameAllocator* allocator = PageFrameAllocator::SharedAllocator();
     allocator->ReadEFIMemoryMap(bootInfo->mMap, bootInfo->mMapSize, bootInfo->mMapDescriptorSize);
-
-    uint64_t kernelSize = (uint64_t)&_KernelEnd - (uint64_t)&_KernelStart;
-    uint64_t kernelPages = (uint64_t)kernelSize / 4096 + 1;
-    allocator->LockPages(&_KernelStart, kernelPages);
+    allocator->LockPages(0x0, 256);
 
     PageTable* PML4 = (PageTable *)allocator->RequestPage();
     memset(PML4, 0, 0x1000);
@@ -66,10 +63,10 @@ void PrepareInterrupts() {
     SetIDTGate(KeyboardInt_Handler, 0x21, IDT_TA_InterruptGate, 0x08);
     SetIDTGate(TimerInt_Handler, 0x20, IDT_TA_InterruptGate, 0x08);
 
-    outb(0x43, 0x36);
+    port_write_8(0x43, 0x36);
     uint16_t divisor = get_pit_divisor(20);
-    outb(0x40, divisor & 0xFF);
-    outb(0x40, divisor >> 8);
+    port_write_8(0x40, divisor & 0xFF);
+    port_write_8(0x40, divisor >> 8);
 
     SetIDTGate(RTCInt_Handler, 0x28, IDT_TA_InterruptGate, 0x08);
 
@@ -81,8 +78,8 @@ void PrepareInterrupts() {
 
     RemapPIC();
 
-    outb(PIC1_DATA, 0b11111001);
-    outb(PIC2_DATA, 0b11101110);
+    port_write_8(PIC1_DATA, 0b11111001);
+    port_write_8(PIC2_DATA, 0b11101110);
 
     asm ("sti");
 }
@@ -98,8 +95,6 @@ KernelInfo InitializeKernel(BootInfo* bootInfo) {
     LoadGDT(&gdtDescriptor);
 
     PrepareMemory(bootInfo);
-
-    memset(bootInfo->framebuffer->baseAddress, 0, bootInfo->framebuffer->bufferSize);
     
     PrepareInterrupts();
 

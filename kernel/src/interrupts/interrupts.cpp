@@ -31,13 +31,13 @@ __attribute__((interrupt)) void GPFault_Handler(struct interrupt_frame* frame) {
 }
 
 __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame* frame) {
-    uint8_t scancode = inb(0x60);
+    uint8_t scancode = port_read_8(0x60);
     HandleKeyboard(scancode);
     PIC_EndMaster();
 }
 
 __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame* frame) {
-    uint8_t mouseData = inb(0x60);
+    uint8_t mouseData = port_read_8(0x60);
     ps2_mouse_handle(mouseData);
     PIC_EndSlave();
 }
@@ -61,8 +61,8 @@ __attribute__((interrupt)) void RTCInt_Handler(struct interrupt_frame* frame) {
         cur = cur->next;
     }
 
-    outb(0x70, 0xC);
-    inb(0x71);
+    port_write_8(0x70, 0xC);
+    port_read_8(0x71);
     PIC_EndSlave();
 }
 
@@ -125,43 +125,43 @@ void unregister_rtc_cb(rtc_chain_t* entry) {
 }
 
 void PIC_EndMaster() {
-    outb(PIC1_COMMAND, PIC_EOI);
+    port_write_8(PIC1_COMMAND, PIC_EOI);
 }
 
 void PIC_EndSlave() {
-    outb(PIC2_COMMAND, PIC_EOI);
-    outb(PIC1_COMMAND, PIC_EOI);
+    port_write_8(PIC2_COMMAND, PIC_EOI);
+    port_write_8(PIC1_COMMAND, PIC_EOI);
 }
 
 void RemapPIC() {
     uint8_t a1, a2;
 
-    a1 = inb(PIC1_DATA);
-    io_wait();
-    a2 = inb(PIC2_DATA);
-    io_wait();
+    a1 = port_read_8(PIC1_DATA);
+    port_yield();
+    a2 = port_read_8(PIC2_DATA);
+    port_yield();
 
-    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait();
-    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait();
+    port_write_8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+    port_yield();
+    port_write_8(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+    port_yield();
 
-    outb(PIC1_DATA, 0x20);
-    io_wait();
-    outb(PIC2_DATA, 0x28);
-    io_wait();
+    port_write_8(PIC1_DATA, 0x20);
+    port_yield();
+    port_write_8(PIC2_DATA, 0x28);
+    port_yield();
 
-    outb(PIC1_DATA, 4);
-    io_wait();
-    outb(PIC2_DATA, 2);
-    io_wait();
+    port_write_8(PIC1_DATA, 4);
+    port_yield();
+    port_write_8(PIC2_DATA, 2);
+    port_yield();
 
-    outb(PIC1_DATA, ICW4_8086);
-    io_wait();
-    outb(PIC2_DATA, ICW4_8086);
-    io_wait();
+    port_write_8(PIC1_DATA, ICW4_8086);
+    port_yield();
+    port_write_8(PIC2_DATA, ICW4_8086);
+    port_yield();
 
-    outb(PIC1_DATA, a1);
-    io_wait();
-    outb(PIC2_DATA, a2);
+    port_write_8(PIC1_DATA, a1);
+    port_yield();
+    port_write_8(PIC2_DATA, a2);
 }

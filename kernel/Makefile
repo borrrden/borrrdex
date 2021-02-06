@@ -8,7 +8,7 @@ CC = gcc
 ASMC = nasm
 LD = ld
 
-override CFLAGS := -ffreestanding -fshort-wchar -mno-red-zone -g $(CFLAGS)
+override CFLAGS := -I src -ffreestanding -fshort-wchar -mno-red-zone -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
 

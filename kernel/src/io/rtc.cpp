@@ -15,15 +15,15 @@ constexpr uint16_t CMOS_DATA = 0x71;
 bool binary_encoding, no_pm;
 
 int get_update_in_progress_flag() {
-    outb(CMOS_ADDRESS, 0xA);
-    io_wait();
-    return (inb(CMOS_DATA) & 0x80);
+    port_write_8(CMOS_ADDRESS, 0xA);
+    port_yield();
+    return (port_read_8(CMOS_DATA) & 0x80);
 }
 
 unsigned char get_rtc_register(uint8_t reg) {
-    outb(CMOS_ADDRESS, reg);
-    io_wait();
-    return inb(CMOS_DATA);
+    port_write_8(CMOS_ADDRESS, reg);
+    port_yield();
+    return port_read_8(CMOS_DATA);
 }
 
 void rtc_init_interrupt() {
