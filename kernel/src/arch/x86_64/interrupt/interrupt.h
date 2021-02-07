@@ -7,12 +7,17 @@
 extern "C" {
 #endif
 
-    typedef struct {
-        uint32_t irq;
-        int_handler_t handler;
-    } interrupt_entry_t;
-
+    /**
+     * Initializes PIC based interrupts (as part of the process, sets up GDT and IDT).
+     * Do not call this more than once.
+     */
     void interrupt_init();
+
+    /**
+     * Registers a handler for a PIC based interrupt
+     * @param irq       The IRQ number to use with the callback
+     * @param handler   The callback to use
+     */
     void interrupt_register(uint32_t irq, int_handler_t handler);
 
     typedef void(*TimerCallback)();

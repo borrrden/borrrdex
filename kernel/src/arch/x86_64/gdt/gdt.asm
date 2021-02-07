@@ -2,11 +2,12 @@
 
 GLOBAL __load_gdt
 
-; This should probably be done earlier in the boot process
+
 __load_gdt:
     lgdt [rdi]
 
-    ; Load KernelData
+    ; This should probably be done earlier in the boot process
+    ; Load KernelData into the Data Segment registers
     mov ax, 0x10
     mov ds, ax
     mov es, ax
@@ -14,7 +15,8 @@ __load_gdt:
     mov gs, ax
     mov ss, ax
 
-    ; Load KernelCode
+    ; Load KernelCode into the Code Segment registers
+    ; (Using side effect of retfq)
     pop rdi
     mov rax, 0x08
     push rax
