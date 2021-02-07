@@ -6,9 +6,7 @@ void Panic(const char* panicMessage) {
     GlobalRenderer->Clear();
     GlobalRenderer->CursorPosition = {0, 0};
     GlobalRenderer->SetColor(0);
-    GlobalRenderer->Printf("Kernel Panic");
-    GlobalRenderer->Next();
-    GlobalRenderer->Next();
+    GlobalRenderer->Printf("Kernel Panic\n\n");
 
     GlobalRenderer->Printf(panicMessage);
 }

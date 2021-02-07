@@ -49,3 +49,4 @@ lib/
 *.elf
 *.bin
 !**/zap-light16.psf
+kernel/.gdbinit

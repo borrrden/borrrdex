@@ -1,5 +1,9 @@
 [bits 64]
-LoadGDT:
+
+GLOBAL __load_gdt
+
+; This should probably be done earlier in the boot process
+__load_gdt:
     lgdt [rdi]
 
     ; Load KernelData
@@ -16,5 +20,3 @@ LoadGDT:
     push rax
     push rdi
     retfq
-
-GLOBAL LoadGDT

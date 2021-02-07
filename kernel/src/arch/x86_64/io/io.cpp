@@ -1,5 +1,5 @@
 #include "io.h"
-#include "../Memory.h"
+#include "Memory.h"
 #include <stddef.h>
 
 void port_yield() {

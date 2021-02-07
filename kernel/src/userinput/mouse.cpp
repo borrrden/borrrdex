@@ -1,5 +1,5 @@
 #include "mouse.h"
-#include "../io/io.h"
+#include "arch/x86_64/io/io.h"
 #include "../Memory.h"
 #include "../graphics/BasicRenderer.h"
 

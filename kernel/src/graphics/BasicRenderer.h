@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../math.h"
-#include "../interrupts/interrupts.h"
-#include "../io/rtc.h"
+#include "arch/x86_64/io/rtc.h"
 #include "Updateable.h"
 #include <stdint.h>
 

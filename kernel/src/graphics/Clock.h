@@ -2,7 +2,7 @@
 
 #include "BasicRenderer.h"
 #include "Updateable.h"
-#include "../io/rtc.h"
+#include "arch/x86_64/io/rtc.h"
 
 class Clock 
 #ifdef VIRTUAL_METHODS

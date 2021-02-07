@@ -27,10 +27,15 @@ DIRS = $(wildcard $(SRCDIR)/*)
 
 kernel:	$(OBJS) link
 
-$(OBJDIR)/interrupts/interrupts.o: $(SRCDIR)/interrupts/interrupts.cpp
+$(OBJDIR)/arch/x86_64/interrupt/%.o: $(SRCDIR)/arch/x86_64/interrupt/%.cpp
 	@ echo !== Compiling $^
 	@ mkdir -p $(@D)
-	$(CC) -mno-red-zone -mgeneral-regs-only -ffreestanding -g -c $^ -o $@
+	$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+
+$(OBJDIR)/arch/x86_64/irq.o: $(SRCDIR)/arch/x86_64/irq.cpp
+	@ echo !== Compiling $^
+	@ mkdir -p $(@D)
+	$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@ echo !== Compiling $^

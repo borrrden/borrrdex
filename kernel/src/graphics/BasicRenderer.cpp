@@ -1,7 +1,7 @@
 #include "BasicRenderer.h"
 #include "SimpleFont.h"
 #include "../uefi/FrameBuffer.h"
-#include "../io/io.h"
+#include "arch/x86_64/io/io.h"
 #include <cstdarg>
 
 constexpr uint32_t CURSOR_COLOR = 0xff00dd00;

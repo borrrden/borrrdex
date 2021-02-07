@@ -1,5 +1,5 @@
 #include "e1000.h"
-#include "io/io.h"
+#include "arch/x86_64/io/io.h"
 
 constexpr uint16_t REG_EEPROM = 0x0014;
 

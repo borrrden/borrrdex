@@ -3,11 +3,12 @@
 #include "acpi/mcfg.h"
 #include "KernelUtil.h"
 #include "Memory.h"
-#include "io/rtc.h"
-#include "io/serial.h"
+#include "arch/x86_64/io/rtc.h"
+#include "arch/x86_64/io/serial.h"
 #include "graphics/Clock.h"
 #include "userinput/mouse.h"
 #include "arch/x86_64/cpuid.h"
+#include "arch/x86_64/interrupt/interrupt.h"
 
 #include <cstddef>
 
