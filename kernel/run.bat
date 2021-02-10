@@ -11,7 +11,7 @@ qemu-system-x86_64 -drive file=%BUILDDIR%/%OSNAME%.img^
     -drive if=pflash,format=raw,unit=0,file=%OVMFDIR%/OVMF_CODE-pure-efi.fd,readonly=on^
     -drive if=pflash,format=raw,unit=1,file=%OVMFDIR%/OVMF_VARS-pure-efi.fd^
     -machine q35 ^
-    -s
+    -s -S
     ::-rtc base=localtime,clock=host^
     ::-usb^
     ::-serial file:%BUILDDIR%/serial.log^

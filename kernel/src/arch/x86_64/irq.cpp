@@ -3,117 +3,103 @@
 #include "graphics/BasicRenderer.h"
 
 #define HALT while(true) { asm volatile("hlt"); }
+#define WRITEART(line) GlobalRenderer->Printf(line); GlobalRenderer->CursorPosition.y += 16; GlobalRenderer->CursorPosition.x -= 72
 
-extern "C" __attribute__((interrupt)) void isr_default_handler(struct interrupt_frame* frame) {
-    // No-op
+void print_common(regs_t* regs) {
+    if(regs->error_code) {
+        GlobalRenderer->Printf(" (code 0x%x [%llu])", regs->error_code, regs->error_code);
+    }
+
+    GlobalRenderer->Next();
+    GlobalRenderer->Next();
+    GlobalRenderer->Printf("Fault Location Information:\n");
+    GlobalRenderer->Printf("RIP:    0x%016llx\t\tRSP: 0x%016llx\n", regs->rip, regs->rsp);
+    GlobalRenderer->Printf("RFLAGS: 0x%016llx\t\tCS:  0x%016llx\t\tSS: 0x%016llx", regs->rflags, regs->cs, regs->ss);
+    GlobalRenderer->Next();
+    GlobalRenderer->Next();
+    GlobalRenderer->Printf("Registers:\n\n");
+    GlobalRenderer->Printf("RAX: 0x%016llx\t\tRBX: 0x%016llx\t\tRCX: 0x%016llx\t\tRDX: 0x%016llx\n", regs->rax, regs->rbx, regs->rcx, regs->rdx);
+    GlobalRenderer->Printf("RSP: 0x%016llx\t\tRBP: 0x%016llx\t\tRSI: 0x%016llx\t\tRDI: 0x%016llx\n", regs->kernel_rsp, regs->rbp, regs->rsi, regs->rdi);
+    GlobalRenderer->Printf("R8:  0x%016llx\t\tR9:  0x%016llx\t\tR10: 0x%016llx\t\tR11: 0x%016llx\n", regs->r8, regs->r9, regs->r10, regs->r11);
+    GlobalRenderer->Printf("R12: 0x%016llx\t\tR13: 0x%016llx\t\tR14: 0x%016llx\t\tR15: 0x%016llx\n", regs->r12, regs->r13, regs->r14, regs->r15);
+    GlobalRenderer->CursorPosition = {GlobalRenderer->Width() / 2 - 4 * 8, GlobalRenderer->Height() / 2 - 2 * 16};
+    WRITEART(" _______");
+    WRITEART("|.-----.|");
+    WRITEART("||x . x||");
+    WRITEART("||_.-._||");
+    WRITEART("`--)-(--`");
 }
 
-extern "C" __attribute__((interrupt)) void isr_handler0(struct interrupt_frame *) {
-    Panic("Hardware exception #DE");
+extern "C" void interrupt_handle(regs_t* regs) {
+    switch(regs->irq) {
+        case 0:
+            Panic("Hardware exception #DE");
+            break;
+        case 1:
+            Panic("Hardware exception #DB");
+            break;
+        case 2:
+            Panic("NMI Unhandled");
+            break;
+        case 3:
+            Panic("Hardware exception #BP");
+            break;
+        case 4:
+            Panic("Hardware exception #OF");
+            break;
+        case 5:
+            Panic("Hardware exception #BR");
+            break;
+        case 6:
+            Panic("Hardware exception #UD");
+            break;
+        case 7:
+            Panic("Hardware exception #NM");
+            break;
+        case 8:
+            Panic("Hardware exception #DF");
+            break;
+        case 9:
+            Panic("Ancient FPU based GPD, why?");
+            break;
+        case 10:
+            Panic("Hardware exception #TS");
+            break;
+        case 11:
+            Panic("Hardware exception #NP");
+            break;
+        case 12:
+            Panic("Hardware exception #SS");
+            break;
+        case 13:
+            Panic("Hardware exception #GP");
+            break;
+        case 14:
+            Panic("Hardware exception #PF");
+            uint64_t page;
+            asm volatile("movq %%cr2, %%rdx" : "=d"(page));
+
+            GlobalRenderer->Printf(" requesting address 0x%llx", page);
+            break;
+        case 15:
+            Panic("Ancient FPU based error, why?");
+            break;
+        case 16:
+            Panic("Hardware exception #MF");
+            break;
+        case 17:
+            Panic("Hardware exception #AC");
+            break;
+        case 18:
+            Panic("Hardware exception #MC");
+            break;
+        case 19:
+            Panic("Hardware exception #XM");
+            break;
+    }
+
+    print_common(regs);
     HALT
 }
-
-extern "C" __attribute__((interrupt)) void isr_handler1(struct interrupt_frame *) {
-    Panic("Hardware exception #DB");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler2(struct interrupt_frame *) {
-    Panic("NMI unhandled");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler3(struct interrupt_frame *) {
-    Panic("Hardware exception #BP");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler4(struct interrupt_frame *) {
-    Panic("Hardware exception #OF");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler5(struct interrupt_frame *) {
-    Panic("Hardware exception #BR");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler6(struct interrupt_frame *){
-    Panic("Hardware exception #UD");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler7(struct interrupt_frame *){
-    Panic("Hardware exception #NM");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler8(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #DF");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler9(struct interrupt_frame *) {
-    Panic("Ancient FPU based GPF, why?");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler10(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #TS");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler11(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #NP");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler12(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #SS");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler13(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #GP");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler14(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #PF");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler15(struct interrupt_frame *) {
-    Panic("Ancient FPU based GPF, why?");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler16(struct interrupt_frame *) {
-    Panic("Hardware exception #MF");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler17(struct interrupt_frame *, uint64_t e) {
-    Panic("Hardware exception #AC");
-    GlobalRenderer->Printf(" (code 0x%x [%llu])", e, e);
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler18(struct interrupt_frame *) {
-    Panic("Hardware exception #MC");
-    HALT
-}
-
-extern "C" __attribute__((interrupt)) void isr_handler19(struct interrupt_frame *) {
-    Panic("Hardware exception #XM");
-    HALT
-}
-
 
 #undef HALT

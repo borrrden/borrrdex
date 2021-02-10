@@ -19,13 +19,7 @@ constexpr uint8_t IDT_MAX_INTERRUPTS = 0xFF; ///< The maximum number of interrup
 extern "C" {
 #endif
 
-    // Use this for now beacuse GCC can support two different signature
-    // for an interrupt service routine, but since they all get translated
-    // into a memory address anyway just make a union for either type
-    typedef union {
-        void (*type1)(struct interrupt_frame*);
-        void (*type2)(struct interrupt_frame*, uint64_t);
-    } irq_handler;
+    typedef void(*irq_handler)();
 
     typedef struct idt_descriptor {
         uint16_t base_low;  ///< The interrupt handler's address (bits 0 - 15)

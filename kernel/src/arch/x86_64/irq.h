@@ -8,31 +8,19 @@ constexpr uint32_t EFLAGS_INTERRUPT_FLAG = 1 << 9;
 extern "C" {
 #endif
 
-struct interrupt_frame;
-typedef void (*int_handler_t)(struct interrupt_frame *);
+typedef struct regs {
+    uint64_t rax, rcx, rdx, rbx;
+    uint64_t kernel_rsp, rbp, rsi, rdi;
 
-__attribute__((interrupt)) void isr_default_handler(struct interrupt_frame* frame);
+    uint64_t r8, r9, r10, r11;
+    uint64_t r12, r13, r14, r15;
 
-__attribute__((interrupt)) void isr_handler0(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler1(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler2(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler3(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler4(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler5(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler6(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler7(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler8(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler9(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler10(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler11(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler12(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler13(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler14(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler15(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler16(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler17(struct interrupt_frame *, uint64_t);
-__attribute__((interrupt)) void isr_handler18(struct interrupt_frame *);
-__attribute__((interrupt)) void isr_handler19(struct interrupt_frame *);
+    uint64_t irq, error_code;
+
+    uint64_t rip, cs, rflags, rsp, ss;
+} regs_t;
+
+typedef void (*int_handler_t)();
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,12 @@
 #include "keyboard.h"
-#include "keymaps.h"
-#include "../cstr.h"
-#include "../graphics/BasicRenderer.h"
+#include "userinput/keymaps.h"
+#include "cstr.h"
+#include "graphics/BasicRenderer.h"
+#include "arch/x86_64/io/io.h"
+#include "arch/x86_64/interrupt/interrupt.h"
+#include "arch/x86_64/pic.h"
+
+extern "C" void __keyboard_irq_handler();
 
 bool leftShift, rightShift, cursor;
 
@@ -57,4 +62,14 @@ void HandleKeyboard(uint8_t scancode) {
     if(ascii != 0) {
         GlobalRenderer->PutChar(ascii);
     }
+}
+
+extern "C" void keyboard_init() {
+    interrupt_register(PIC_IRQ_KEYBOARD, __keyboard_irq_handler);
+}
+
+extern "C" void keyboard_handle() {
+    uint8_t scancode = port_read_8(0x60);
+    HandleKeyboard(scancode);
+    pic_eoi(PIC_IRQ_KEYBOARD);
 }

@@ -1,9 +1,30 @@
 #include "rtc.h"
 #include "io.h"
+#include "arch/x86_64/pic.h"
+#include "arch/x86_64/interrupt/interrupt.h"
+
+#include <cstddef>
 
 extern "C" {
+    void __rtc_irq_handler();
     void _rtc_init_interrupt();
     void _rtc_set_interrupt_frequency(uint8_t rate);
+}
+
+static rtc_chain* s_root_chain;
+
+extern "C" void rtc_handle() {
+    rtc_chain_t* cur = s_root_chain;
+    datetime_t nextDate;
+    rtc_read(&nextDate);
+    while(cur) {
+        cur->cb(&nextDate, cur->context);
+        cur = cur->next;
+    }
+
+    port_write_8(0x70, 0xC);
+    port_read_8(0x71);
+    pic_eoi(PIC_IRQ_CMOSTIMER);
 }
 
 uint8_t century_register = 0x00;
@@ -26,9 +47,8 @@ unsigned char get_rtc_register(uint8_t reg) {
     return port_read_8(CMOS_DATA);
 }
 
-void rtc_init_interrupt() {
-    _rtc_init_interrupt();
-    rtc_set_interrupt_frequency(7);
+void rtc_init() {
+    interrupt_register(PIC_IRQ_CMOSTIMER, __rtc_irq_handler);
 }
 
 inline uint8_t decode_date_byte(uint8_t b) {
@@ -95,4 +115,35 @@ uint8_t rtc_get_interrupt_frequency() {
 
 uint16_t rtc_get_interrupt_frequency_hz() {
     return 1 << (16 - rtc_frequency); 
+}
+
+void register_rtc_cb(rtc_chain_t* entry) {
+    if(!s_root_chain) {
+        _rtc_init_interrupt();
+        rtc_set_interrupt_frequency(7);
+        s_root_chain = entry;
+        return;
+    }
+
+    rtc_chain_t* cur = s_root_chain;
+    while(cur->next) {
+        cur = cur->next;
+    }
+
+    cur->next = entry;
+}
+
+void unregister_rtc_cb(rtc_chain_t* entry) {
+    rtc_chain_t* cur = s_root_chain;
+    rtc_chain_t* prev = NULL;
+    while(cur->cb && cur->cb != entry->cb) {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    if(prev) {
+        prev->next = cur->next;
+    } else {
+        s_root_chain = NULL;
+    }
 }

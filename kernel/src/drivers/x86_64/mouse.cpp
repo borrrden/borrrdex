@@ -1,7 +1,11 @@
 #include "mouse.h"
 #include "arch/x86_64/io/io.h"
-#include "../Memory.h"
-#include "../graphics/BasicRenderer.h"
+#include "arch/x86_64/interrupt/interrupt.h"
+#include "arch/x86_64/pic.h"
+#include "Memory.h"
+#include "graphics/BasicRenderer.h"
+
+extern "C" void __mouse_irq_handler();
 
 union MousePacket {
     uint8_t val;
@@ -47,7 +51,7 @@ uint8_t ps2_mouse_read() {
     return port_read_8(0x60);
 }
 
-void ps2_mouse_init() {
+extern "C" void ps2_mouse_init() {
     port_write_8(0x64, 0xA8);
     ps2_mouse_wait_output();
     port_write_8(0x64, 0x20);
@@ -64,13 +68,15 @@ void ps2_mouse_init() {
     ps2_mouse_read();
     ps2_mouse_write(0xF4);
     ps2_mouse_read();
+
+    interrupt_register(PIC_IRQ_PS2MOUSE, __mouse_irq_handler);
 }
 
 uint8_t mouseCycle = 0;
 uint8_t mousePacket[4];
 bool mousePacketReady = false;
 Point MousePosition; 
-void ps2_mouse_handle(uint8_t data) {
+extern "C" void ps2_mouse_handle(uint8_t data) {
     switch(mouseCycle) {
         case 0:
         {
@@ -103,7 +109,13 @@ void ps2_mouse_handle(uint8_t data) {
     }
 }
 
-void ps2_mouse_process_packet() {
+extern "C" void mouse_handle() {
+    uint8_t mouseData = port_read_8(0x60);
+    ps2_mouse_handle(mouseData);
+    pic_eoi(PIC_IRQ_PS2MOUSE);
+}
+
+extern "C" void ps2_mouse_process_packet() {
     if(!mousePacketReady) {
         return;
     }

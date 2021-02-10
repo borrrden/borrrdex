@@ -2,17 +2,10 @@
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/pic.h"
-#include "userinput/keyboard.h"
+#include "drivers/x86_64/pit.h"
+#include "drivers/x86_64/keyboard.h"
 #include "userinput/keymaps.h"
-#include "userinput/mouse.h"
 #include "arch/x86_64/io/io.h"
-
-constexpr uint32_t PIT_FREQUENCY = 1193180U;
-
-constexpr uint16_t get_pit_divisor(uint16_t hz) {
-    uint32_t result = PIT_FREQUENCY / hz;
-    return result > UINT16_MAX ? UINT16_MAX : result;
-}
 
 PageTableManager gPageTableManager(NULL);
 
@@ -45,25 +38,30 @@ static void PrepareMemory(BootInfo* bootInfo) {
 }
 
 void PrepareInterrupts() {
-    port_write_8(0x43, 0x36);
-    uint16_t divisor = get_pit_divisor(20);
-    port_write_8(0x40, divisor & 0xFF);
-    port_write_8(0x40, divisor >> 8);
-
-    ps2_mouse_init();
-
     interrupt_init();
+
+    keyboard_init();
+    //ps2_mouse_init();
+    //pit_init();
+    rtc_init();
 }
 
 static BasicRenderer r(NULL, NULL);
 KernelInfo InitializeKernel(BootInfo* bootInfo) {
     r = BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_font);
     GlobalRenderer = &r;
-    uint64_t test = (uint64_t)GlobalRenderer;
+    
+    GlobalRenderer->Printf("borrrdex - An operating system for learning operating systems\n");
+    GlobalRenderer->Printf("=============================================================\n");
+    GlobalRenderer->Printf("\n");
+    GlobalRenderer->Printf("borrrdex is heavily based on PonchoOS and KUDOS\n");
+    GlobalRenderer->Printf("\n");
 
-    KeyboardMapFunction = JP109Keyboard::translate;
-
+    GlobalRenderer->Printf("Setting up memory...\n");
     PrepareMemory(bootInfo);
+    
+    GlobalRenderer->Printf("Setting up interrupts...\n");
+    KeyboardMapFunction = JP109Keyboard::translate;
     PrepareInterrupts();
     
     return {
