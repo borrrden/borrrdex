@@ -8,7 +8,7 @@ CC = gcc
 ASMC = nasm
 LD = ld
 
-override CFLAGS := -I src -ffreestanding -fshort-wchar -mno-red-zone -g $(CFLAGS)
+override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -mno-red-zone -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
 
@@ -39,7 +39,7 @@ $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
 
 link:
 	@ echo !== Linking $^
-	$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS)
+	$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS) $(BUILDDIR)/../../libc/bin/libc.a
 
 setup:
 	@mkdir -p $(BUILDDIR)

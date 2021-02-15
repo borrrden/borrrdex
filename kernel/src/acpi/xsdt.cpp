@@ -3,27 +3,35 @@
 #include "hpet.h"
 #include "mcfg.h"
 #include "../graphics/BasicRenderer.h"
-#include "../Memory.h"
-#include "../cstr.h"
+#include "string.h"
 #include "apic.h"
 
-size_t xsdt_entry_count(XSDT* xsdt) {
-    return (xsdt->h.length - sizeof(xsdt->h)) / 8;
+size_t XSDT::count() const {
+    return (_data->h.length - sizeof(_data->h)) / 8;
 }
 
-void* xsdt_get_table(XSDT* xsdt, const char* signature) {
-    size_t xsdtEntries = (xsdt->h.length - sizeof(xsdt->h)) / 8;
+acpi_desc_header_t* XSDT::get(const char* signature) const {
+    size_t xsdtEntries = (_data->h.length - sizeof(_data->h)) / 8;
     for(size_t i = 0; i < xsdtEntries; i++) {
-        ACPI_DESCRIPTION_HEADER* h = (ACPI_DESCRIPTION_HEADER *)xsdt->entries[i];
+        acpi_desc_header_t* h = (acpi_desc_header_t *)_data->entries[i];
         if(memcmp(h->signature, signature, 4) == 0) {
-            return h;
+            return (acpi_desc_header_t *)h;
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
-bool xsdt_valid(XSDT* xsdt) {
-    return memcmp(xsdt->h.signature, XSDT_SIGNATURE, 4) == 0
-        && acpi_checksum_ok(xsdt, xsdt->h.length);
+acpi_desc_header_t* XSDT::get_at(size_t index) const {
+    size_t xsdtEntries = (_data->h.length - sizeof(_data->h)) / 8;
+    if(index >= xsdtEntries) {
+        return nullptr;
+    }
+
+    return (acpi_desc_header_t *)_data->entries[index];
+}
+
+bool XSDT::is_valid() const {
+    return memcmp(_data->h.signature, signature, 4) == 0
+        && acpi_checksum_ok(_data, _data->h.length);
 }

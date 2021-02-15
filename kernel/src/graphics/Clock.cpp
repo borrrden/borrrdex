@@ -1,5 +1,4 @@
 #include "Clock.h"
-#include "../cstr.h"
 
 const char* dow[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
@@ -8,7 +7,7 @@ void print_padded(BasicRenderer* r, uint64_t val) {
         r->Printf("0");
     }
 
-    r->Printf(to_string(val));
+    r->Printf("%llu", val);
 }
 
 void Clock::tick(datetime_t* dt) {

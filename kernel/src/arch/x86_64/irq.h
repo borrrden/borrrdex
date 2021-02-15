@@ -1,12 +1,12 @@
 #pragma once
 
-#include <stdint.h>
+#ifndef __cplusplus
+#error C++ Only
+#endif
+
+#include <cstdint>
 
 constexpr uint32_t EFLAGS_INTERRUPT_FLAG = 1 << 9;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef struct regs {
     uint64_t rax, rcx, rdx, rbx;
@@ -21,7 +21,3 @@ typedef struct regs {
 } regs_t;
 
 typedef void (*int_handler_t)();
-
-#ifdef __cplusplus
-}
-#endif

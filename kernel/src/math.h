@@ -1,6 +1,10 @@
 #pragma once
 
-#include <stdint.h>
+#ifndef __cplusplus
+#error C++ Only
+#endif
+
+#include <cstdint>
 
 struct Point {
     long x, y;

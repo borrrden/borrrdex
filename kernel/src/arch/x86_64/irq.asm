@@ -4,6 +4,7 @@ GLOBAL isr_default_handler
 GLOBAL __enable_irq
 GLOBAL __disable_irq
 GLOBAL __getflags
+GLOBAL __idle_thread_wait_loop
 GLOBAL isr_handler0
 GLOBAL isr_handler1
 GLOBAL isr_handler2
@@ -40,6 +41,10 @@ __getflags:
     pushfq
     pop rax
     ret
+
+__idle_thread_wait_loop:
+	hlt
+	jmp __idle_thread_wait_loop
 
 %macro PUSHAQ 0
     mov [rsp-0x8], r15

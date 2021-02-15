@@ -1,7 +1,7 @@
 #include "hpet.h"
-#include "../Memory.h"
+#include "string.h"
 
-bool hpet_valid(HPET* hpet) {
-    return memcmp(hpet->h.signature, HPET_SIGNATURE, 4) == 0
-        && acpi_checksum_ok(hpet, hpet->h.length);
+bool HPET::is_valid() const {
+    return memcmp(_data->h.signature, signature, 4) == 0
+        && acpi_checksum_ok(_data, _data->h.length);
 }

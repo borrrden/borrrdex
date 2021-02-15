@@ -1,8 +1,10 @@
 #pragma once
 
-#include "common.h"
+#ifndef __cplusplus
+#error C++ Only
+#endif
 
-static constexpr const char* RSDP_SIGNATURE = "RSD PTR ";
+#include "common.h"
 
 // The Root System Descriptor Pointer (looked up by UEFI)
 // ACPI 6.4 p.141
@@ -16,6 +18,18 @@ typedef struct {
 	uint64_t xdst_address;
 	uint8_t extended_checksum;
 	uint8_t reserved[3];
-} __attribute__((packed)) RSDP;
+} __attribute__((packed)) rsdp_t;
 
-bool rsdp_valid(RSDP* rsdp);
+class RSDP {
+public:
+	static constexpr const char* signature = "RSD PTR ";
+
+	RSDP(void* data)
+		:_data((rsdp_t *)data)
+	{}
+
+	bool is_valid() const;
+	const rsdp_t* data() const { return _data; }
+private:
+	rsdp_t* _data;
+};

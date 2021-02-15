@@ -1,18 +1,33 @@
 #include "apic.h"
-#include "../Memory.h"
+#include "string.h"
 
-bool madt_valid(MADT* madt) {
-	return memcmp(madt->h.signature, MADT_SIGNATURE, 4) == 0
-        && acpi_checksum_ok(madt, madt->h.length);
+constexpr const char* MADT_SIGNATURE = "APIC";
+constexpr const char* MADT::signature() {
+    return MADT_SIGNATURE;
 }
 
-INTERRUPT_CONTROLLER_STRUCTURE_HEADER* madt_entry_at(MADT* madt, size_t index) {
-    uint8_t* start = madt->entries;
+size_t MADT::count() const {
+    uint8_t* start = _data->entries;
     uint8_t* current = start;
-    size_t len = madt->h.length - sizeof(madt->h);
+    size_t len = _data->h.length - sizeof(_data->h);
+
+    size_t total = 0;
+    while(current - start < len) {
+        int_controller_header_t* h = (int_controller_header_t *)current;
+        total++;
+        current += h->length;
+    }
+
+    return total;
+}
+
+int_controller_header_t* MADT::get(size_t index) const {
+    uint8_t* start = _data->entries;
+    uint8_t* current = start;
+    size_t len = _data->h.length - sizeof(_data->h);
     size_t currentIdx = 0;
     while(current - start < len) {
-        INTERRUPT_CONTROLLER_STRUCTURE_HEADER* h = (INTERRUPT_CONTROLLER_STRUCTURE_HEADER *)current;
+        int_controller_header_t* h = (int_controller_header_t *)current;
         if(currentIdx++ == index) {
             return h;
         }
@@ -20,20 +35,5 @@ INTERRUPT_CONTROLLER_STRUCTURE_HEADER* madt_entry_at(MADT* madt, size_t index) {
         current += h->length;
     }
 
-    return NULL;
-}
-
-size_t madt_entry_count(MADT* madt) {
-    uint8_t* start = madt->entries;
-    uint8_t* current = start;
-    size_t len = madt->h.length - sizeof(madt->h);
-
-    size_t total = 0;
-    while(current - start < len) {
-        INTERRUPT_CONTROLLER_STRUCTURE_HEADER* h = (INTERRUPT_CONTROLLER_STRUCTURE_HEADER *)current;
-        total++;
-        current += h->length;
-    }
-
-    return total;
+    return nullptr;
 }

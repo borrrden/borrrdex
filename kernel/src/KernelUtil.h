@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include "cstr.h"
 #include "Memory.h"
 #include "Bitmap.h"
 #include "paging/PageFrameAllocator.h"
@@ -20,7 +19,7 @@ struct BootInfo {
 	EFI_MEMORY_DESCRIPTOR* mMap;
 	uint64_t mMapSize;
 	uint64_t mMapDescriptorSize;
-	RSDP* rsdp;
+	rsdp_t* rsdp;
 };
 
 extern uint64_t _KernelStart;

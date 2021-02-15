@@ -21,7 +21,6 @@ public:
     static PageFrameAllocator* SharedAllocator();
 
 private:
-    void InitBitmap(size_t bitmapSize, void* bufferAddress);
     void ReservePage(void* address);
     void ReservePages(void* address, uint64_t pageCount);
     void UnreservePage(void* address);

@@ -1,20 +1,35 @@
 #pragma once
 
-#include "common.h"
-#include <stdint.h>
+#ifndef __cplusplus
+#error C++ Only
+#endif
 
-static constexpr const char* XSDT_SIGNATURE = "XSDT";
+#include "common.h"
+#include <cstdint>
 
 // The Extended System Descriptor Table, which holds the addreses
 // of all other system descriptor tables on the system (Root
 // System Descriptor Table also exists, for 32-bit implementations)
 // ACPI 6.4 p.146
 typedef struct {
-	ACPI_DESCRIPTION_HEADER h;
+	acpi_desc_header_t h;
 	void* entries[0];
-} __attribute__((packed)) XSDT;
+} __attribute__((packed)) xsdt_t;
 
-bool xsdt_valid(XSDT* xsdt);
-size_t xsdt_entry_count(XSDT* xsdt);
-void* xsdt_get_table_at(XSDT* xsdt, size_t index);
-void* xsdt_get_table(XSDT* xsdt, const char* signature);
+class XSDT {
+public:
+	static constexpr const char* signature = "XSDT";
+
+	XSDT(void* data)
+		:_data((xsdt_t *)data)
+	{}
+
+	size_t count() const;
+	acpi_desc_header_t* get_at(size_t index) const;
+	acpi_desc_header_t* get(const char* signature) const;
+
+	bool is_valid() const;
+	const xsdt_t* data() const { return _data; }
+private:
+	xsdt_t* _data;
+};

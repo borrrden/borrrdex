@@ -1,7 +1,7 @@
 #include "rsdp.h"
-#include "../Memory.h"
+#include "string.h"
 
-bool rsdp_valid(RSDP* rsdp) {
-	return memcmp(rsdp->signature, RSDP_SIGNATURE, 8) == 0
-		&& acpi_checksum_ok(rsdp, rsdp->length);
+bool RSDP::is_valid() const {
+	return memcmp(_data->signature, signature, 8) == 0
+		&& acpi_checksum_ok(_data, _data->length);
 }

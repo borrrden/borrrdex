@@ -9,6 +9,7 @@
 #include "arch/x86_64/cpuid.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "drivers/x86_64/pit.h"
+#include "Panic.h"
 
 #include <cstddef>
 
@@ -36,10 +37,10 @@ extern "C" void _start(BootInfo* bootInfo) {
 
     KernelInfo kernelInfo = InitializeKernel(bootInfo);
     if(bootInfo->rsdp) {
-        XSDT* xsdt = (XSDT *)bootInfo->rsdp->xdst_address;
-        FADT* fadt = (FADT *)xsdt_get_table(xsdt, FADT_SIGNATURE);
-        if(fadt && fadt_valid(fadt)) {
-            century_register = fadt->century;
+        XSDT xsdt((void *)bootInfo->rsdp->xdst_address);
+        FADT fadt(xsdt.get(FADT::signature));
+        if(fadt.is_valid()) {
+            century_register = fadt.data()->century;
         }
     }
 
@@ -57,6 +58,9 @@ extern "C" void _start(BootInfo* bootInfo) {
     };
 
     register_rtc_cb(&renderChain);
+    uint64_t a = 0x80000001, b, c, d;
+    _cpuid(&a, &b, &c, &d);
+    bool hasSyscall = d & (1 << 11);
     while(true) {
         asm("hlt");
     }

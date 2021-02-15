@@ -1,8 +1,7 @@
 #include "PageTableManager.h"
 #include "PageMapIndexer.h"
 #include "PageFrameAllocator.h"
-#include "../Memory.h"
-#include "../cstr.h"
+#include "string.h"
 
 #include <cstdint>
 

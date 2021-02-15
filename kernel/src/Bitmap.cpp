@@ -4,6 +4,7 @@ Bitmap::Bitmap(size_t size, uint8_t* buffer)
     :_size(size)
     ,_buffer(buffer)
     {
+        
         for(size_t i = 0; i < size; i++) {
             buffer[i] = 0;
         }

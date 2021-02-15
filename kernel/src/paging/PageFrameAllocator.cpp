@@ -1,6 +1,6 @@
 #include "PageFrameAllocator.h"
 #include "../graphics/BasicRenderer.h"
-#include "../cstr.h"
+#include "stalloc.h"
 
 PageFrameAllocator sAllocator;
 PageFrameAllocator* PageFrameAllocator::SharedAllocator() {
@@ -14,25 +14,15 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
 
     _initialized = true;
     uint64_t mMapEntries = mMapSize / mMapDescSize;
-    void* largestFreeMemSeg = NULL;
-    size_t largestFreeMemSegSize = 0;
-
-    for(int i = 0; i < mMapEntries; i++) {
-        EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR *)((uint64_t)mMap + i * mMapDescSize);
-        if(desc->type == 7) { // type = EfiConventionalMemory
-            if(desc->numPages * 4096 > largestFreeMemSegSize) {
-                largestFreeMemSeg = desc->physAddr;
-                largestFreeMemSegSize = desc->numPages * 4096;
-            }
-        }
-    }
-
     uint64_t memorySize = GetMemorySize(mMap, mMapEntries, mMapDescSize);
     _freeMemory = memorySize;
     uint64_t bitmapSize = memorySize / 4096 / 8 + 1;
+    void* bitmapAddr = stalloc(bitmapSize);
+    _pageBitmap = Bitmap(bitmapSize, (uint8_t *)bitmapAddr);
+    uint64_t last_address = (uint64_t)stalloc(1);
+    stalloc_disable();
 
-    InitBitmap(bitmapSize, largestFreeMemSeg);
-    LockPages(largestFreeMemSeg, _pageBitmap.GetSize() / 4096 + 1);
+    LockPages(bitmapAddr, _pageBitmap.GetSize() / 4096 + 1);
 
     for(int i = 0; i < mMapEntries; i++) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR *)((uint64_t)mMap + i * mMapDescSize);
@@ -41,10 +31,6 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
         }
     }
 
-}
-
-void PageFrameAllocator::InitBitmap(size_t bitmapSize, void* bufferAddress) {
-    _pageBitmap = Bitmap(bitmapSize, (uint8_t *)bufferAddress);
 }
 
 void* PageFrameAllocator::RequestPage() {

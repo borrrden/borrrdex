@@ -1,6 +1,5 @@
 #include "keyboard.h"
 #include "userinput/keymaps.h"
-#include "cstr.h"
 #include "graphics/BasicRenderer.h"
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/interrupt/interrupt.h"

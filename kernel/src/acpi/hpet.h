@@ -1,19 +1,33 @@
 #pragma once
 
-#include "common.h"
+#ifndef __cplusplus
+#error C++ Only
+#endif
 
-constexpr const char* HPET_SIGNATURE = "HPET";
+#include "common.h"
 
 // High Precision Event Timer
 // Intel IA-PC HPET spec p.30
 typedef struct {
-    ACPI_DESCRIPTION_HEADER h;
+    acpi_desc_header_t h;
     uint32_t evt_tmr_blk_id;
-    ACPI_GENERIC_ADDRESS base_address;
+    acpi_generic_addr_t base_address;
     uint8_t hpet_no;
     uint16_t min_clock_tick;
     uint8_t oem_attributes:4;
     uint8_t page_protection:4;
-} __attribute__((packed)) HPET;
+} __attribute__((packed)) hpet_t;
 
-bool hpet_valid(HPET* hpet);
+class HPET {
+public:
+    static constexpr const char* signature = "HPET";
+
+    HPET(void* data)
+        :_data((hpet_t *)data)
+    {}
+
+    bool is_valid() const;
+    const hpet_t* data() const { return _data; }
+private:
+    hpet_t* _data;
+};

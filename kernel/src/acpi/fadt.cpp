@@ -1,7 +1,7 @@
 #include "fadt.h"
-#include "../Memory.h"
+#include "string.h"
 
-bool fadt_valid(FADT* fadt) {
-    return memcmp(fadt->h.signature, FADT_SIGNATURE, 4) == 0
-        && acpi_checksum_ok(fadt, fadt->h.length);
+bool FADT::is_valid() const {
+    return memcmp(_data->h.signature, signature, 4) == 0
+        && acpi_checksum_ok(_data, _data->h.length);
 }

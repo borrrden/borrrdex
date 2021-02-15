@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <sys/cdefs.h>
 
 // Common header for all ACPI System Descriptor Tables
 // ACPI 6.4 p.141
@@ -15,7 +16,7 @@ typedef struct {
 	uint32_t OEMREVISION;
 	uint32_t creator_id;
 	uint32_t creator_revision;
-} ACPI_DESCRIPTION_HEADER;
+} acpi_desc_header_t;
 
 // The Generic Address Structure (GAS) provides the platform with a robust means to describe register locations.
 // ACPI 6.4 p.138
@@ -25,6 +26,6 @@ typedef struct {
 	uint8_t register_bit_offset;
 	uint8_t access_size;
 	uint64_t address;
-} __attribute__((packed)) ACPI_GENERIC_ADDRESS;
+} __attribute__((packed)) acpi_generic_addr_t;
 
 bool acpi_checksum_ok(void* ptr, size_t len);

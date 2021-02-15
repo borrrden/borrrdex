@@ -1,12 +1,11 @@
 #include "mcfg.h"
 #include "../pci/pci.h"
 #include "../graphics/BasicRenderer.h"
-#include "../cstr.h"
 #include "../paging/PageTableManager.h"
-#include "../Memory.h"
+#include "string.h"
 
-void mcfg_print(MCFG* mcfg) {
-    if(memcmp(mcfg->h.signature, MCFG_SIGNATURE, 4) != 0 || !acpi_checksum_ok(mcfg, mcfg->h.length)) {
+void MCFG::print() const {
+    if(!is_valid()) {
         GlobalRenderer->Printf(" [ERROR Corrupted]");
         return;
     }
@@ -14,18 +13,18 @@ void mcfg_print(MCFG* mcfg) {
     GlobalRenderer->Next();
     GlobalRenderer->Printf("        PCI Devices:");
     GlobalRenderer->Next();
-    size_t entries = mcfg_entry_count(mcfg);
+    size_t entries = count();
     for(int i = 0; i < entries; i++) {
-        MCFG_CONFIGURATION_ENTRY e = mcfg->entries[i];
+        mcfg_config_entry_t e = _data->entries[i];
         pci_print_bus((uint8_t *)e.base_address, 0);
     }
 }
 
-size_t mcfg_entry_count(MCFG* mcfg) {
-    return (mcfg->h.length - (sizeof(mcfg->h) + sizeof(mcfg->reserved))) / sizeof(MCFG_CONFIGURATION_ENTRY);
+size_t MCFG::count() const {
+    return (_data->h.length - (sizeof(_data->h) + sizeof(_data->reserved))) / sizeof(mcfg_config_entry_t);
 }
 
-bool mcfg_valid(MCFG* mcfg) {
-    return memcmp(mcfg->h.signature, MCFG_SIGNATURE, 4) == 0
-        && acpi_checksum_ok(mcfg, mcfg->h.length);
+bool MCFG::is_valid() const {
+    return memcmp(_data->h.signature, signature, 4) == 0
+        && acpi_checksum_ok(_data, _data->h.length);
 }

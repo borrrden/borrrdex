@@ -1,0 +1,7 @@
+#include "vm/memory.h"
+#include "spinlock.h"
+#include "Bitmap.h"
+#include "graphics/BasicRenderer.h"
+#include "string.h"
+#include "stalloc.h"
+#include "drivers/x86_64/arch.h"

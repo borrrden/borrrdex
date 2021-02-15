@@ -1,4 +1,5 @@
 #include "KernelUtil.h"
+#include "string.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/pic.h"
