@@ -35,7 +35,7 @@ __attribute_pure__ int memcmp(const void* aptr, const void* bptr, size_t n) {
 
 void memset(void* dst, int c, size_t n) {
     uint8_t* current = (uint8_t *)dst;
-    for(uint64_t i = 0; i < c; i++) {
+    for(uint64_t i = 0; i < n; i++) {
         *current++ = c;
     }
 }

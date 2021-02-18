@@ -9,7 +9,7 @@
 
 class ThreadContext {
 public:
-    ThreadContext(uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args);
+    void initialize(uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args);
 
     void set_ip(uint64_t ip) { _rip = ip; }
     void set_sp(uint64_t sp) { _stack = (uint64_t *)sp; }
@@ -23,9 +23,7 @@ private:
     uint64_t* _stack;
     uint64_t _rip;
     uint64_t _flags;
-    uint64_t _pml4;
-
-    PageTable* _virtMemory;
+    PageTableManager* _pageTableManager;
     void* _prevContext;
 };
 

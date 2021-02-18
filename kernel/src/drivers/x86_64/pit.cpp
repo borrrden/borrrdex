@@ -57,35 +57,31 @@ void pit_start_counter(uint32_t frequency, uint8_t counter, uint8_t mode) {
     pit_senddata((uint8_t)(divisor >> 8) & 0xFF, counter);
 }
 
-extern "C" void pit_init() {
+void pit_init() {
     interrupt_register(PIC_IRQ_TIMER, __pit_irq_handler);
     pit_start_counter(PIT_FREQUENCY, PIT_CW_MASK_COUNTER0, PIT_CW_MASK_RATEGEN);
 }
 
-extern "C" uint32_t get_clock() {
+uint32_t get_clock() {
     return pit_counter;
 }
 
-extern "C" void __attribute_noinline__ pit_sleepms(uint64_t ms) {
-    // TODO: This needs task switching!
+void __attribute_noinline__ pit_sleepms(uint64_t ms) {
+    WithInterrupts wi(true);
 
-    // interrupt_status_t int_status = interrupt_enable();
+    uint32_t clocks = get_clock();
+    uint32_t ticks = (uint32_t)(ms / (1024 / PIT_FREQUENCY)) + clocks;
+    while(true) {
+        if(clocks > ticks) {
+            break;
+        }
 
-    // uint32_t clocks = get_clock();
-    // uint32_t ticks = (uint32_t)(ms / (1024 / PIT_FREQUENCY)) + clocks;
-    // while(true) {
-    //     if(clocks > ticks) {
-    //         break;
-    //     }
-
-    //     clocks = get_clock();
-    //     asm volatile("hlt");
-    // }
-
-    // interrupt_set_state(int_status);
+        clocks = get_clock();
+        asm volatile("hlt");
+    }
 }
 
-extern "C" void register_timer_cb(timer_chain_t* entry) {
+void register_timer_cb(timer_chain_t* entry) {
     if(!s_root_chain) {
         s_root_chain = entry;
         return;
@@ -99,7 +95,7 @@ extern "C" void register_timer_cb(timer_chain_t* entry) {
     cur->next = entry;
 }
 
-extern "C" void unregister_timer_cb(timer_chain_t* entry) {
+void unregister_timer_cb(timer_chain_t* entry) {
     timer_chain_t* cur = s_root_chain;
     timer_chain_t* prev = NULL;
     while(cur->cb && cur->cb != entry->cb) {

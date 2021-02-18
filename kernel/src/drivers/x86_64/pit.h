@@ -1,6 +1,10 @@
 #pragma once
 
-#include <stdint.h>
+#ifndef __cplusplus
+#error C++ Only
+#endif
+
+#include <cstdint>
 
 constexpr uint8_t PIT_COUNTER0_REG  = 0x40;
 constexpr uint8_t PIT_COUNTER1_REG  = 0x41;
@@ -40,25 +44,17 @@ constexpr uint8_t PIT_CW_MASK_COUNTERINV    = 0x90;
 constexpr uint32_t PIT_BASE_FREQUENCY   = 1193181;  // True oscillation rate of the timer (Hz)
 constexpr uint8_t PIT_FREQUENCY         = 100;      // Desired interrupts per second
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef void(*TimerCallback)();
+typedef struct timer_chain timer_chain_t;
 
-    typedef void(*TimerCallback)();
-    typedef struct timer_chain timer_chain_t;
+struct timer_chain {
+    TimerCallback cb;
+    timer_chain_t* next;
+};
 
-    struct timer_chain {
-        TimerCallback cb;
-        timer_chain_t* next;
-    };
+void register_timer_cb(timer_chain_t* chainEntry);
+void unregister_timer_cb(timer_chain_t* chainEntry);
 
-    void register_timer_cb(timer_chain_t* chainEntry);
-    void unregister_timer_cb(timer_chain_t* chainEntry);
-
-    void pit_init();
-    uint32_t get_clock();
-    //void pit_sleepms(uint64_t ms);
-
-#ifdef __cplusplus
-}
-#endif
+void pit_init();
+uint32_t get_clock();
+void pit_sleepms(uint64_t ms);

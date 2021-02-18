@@ -8,14 +8,14 @@ CC = gcc
 ASMC = nasm
 LD = ld
 
-override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -mno-red-zone -g $(CFLAGS)
+override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -mno-red-zone -fno-rtti -fno-exceptions -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
 
 SRCDIR := src
 OBJDIR := lib
 BUILDDIR = bin
-BOOTEFI := $(GNUEFI)/x86_64/bootloader/main.efi
+BOOTEFI := $(GNUEFI)/x86_64/bootloader/BOOTX64.EFI
 
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
@@ -55,7 +55,6 @@ buildimg:
 	@mmd -i $(BUILDDIR)/$(OSNAME).img ::/EFI
 	@mmd -i $(BUILDDIR)/$(OSNAME).img ::/EFI/BOOT
 	@mcopy -i $(BUILDDIR)/$(OSNAME).img $(BOOTEFI) ::/EFI/BOOT
-	@mcopy -i $(BUILDDIR)/$(OSNAME).img startup.nsh ::
 	@mcopy -i $(BUILDDIR)/$(OSNAME).img $(BUILDDIR)/kernel.elf ::
 	@mcopy -i $(BUILDDIR)/$(OSNAME).img $(BUILDDIR)/zap-light16.psf ::
 	@# mkdir -p $(BUILDDIR)/iso/EFI/BOOT

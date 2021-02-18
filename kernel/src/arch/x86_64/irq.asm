@@ -5,6 +5,8 @@ GLOBAL __enable_irq
 GLOBAL __disable_irq
 GLOBAL __getflags
 GLOBAL __idle_thread_wait_loop
+GLOBAL interrupt_yield
+GLOBAL yield_irq_handler
 GLOBAL isr_handler0
 GLOBAL isr_handler1
 GLOBAL isr_handler2
@@ -45,6 +47,10 @@ __getflags:
 __idle_thread_wait_loop:
 	hlt
 	jmp __idle_thread_wait_loop
+
+interrupt_yield:
+	int 0x81
+	ret
 
 %macro PUSHAQ 0
     mov [rsp-0x8], r15
@@ -191,3 +197,23 @@ isr_handler19:
 	push qword 0
 	push qword 19
 	jmp IsrCommon
+
+yield_irq_handler:
+	; cli
+
+	; PUSHAQ
+
+	; mov rdi, rsp
+	; call task_switch
+
+	; mov rsp, rax
+	; mov cr3, rdx
+
+	; mov rdi, 0
+	; call pic_eoi
+
+	; POPAQ
+
+	; sti
+	iretq
+

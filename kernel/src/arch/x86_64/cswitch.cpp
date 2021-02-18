@@ -1,11 +1,12 @@
 #include "cswitch.h"
 #include "gdt/gdt.h"
 #include "arch/x86_64/irq.h"
+#include "KernelUtil.h"
 #include "paging/PageTableManager.h"
 
 constexpr uint32_t THREAD_FLAGS = 0x200202;
 
-ThreadContext::ThreadContext(uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args) {
+void ThreadContext::initialize(uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args) {
     if(stack & 0xF) {
         stack = (stack & 0xFFFFFFFFFFFFFFF0);
         stack += 0x10;
@@ -47,6 +48,5 @@ ThreadContext::ThreadContext(uint64_t entry, uint64_t endentry, uint64_t stack, 
 
 void ThreadContext::enable_interrupts() {
     _flags |= EFLAGS_INTERRUPT_FLAG;
-
-
+    _pageTableManager = KernelPageTableManager();
 }

@@ -1,7 +1,7 @@
 #include "stalloc.h"
 #include "Panic.h"
 
-extern char KERNEL_END;
+extern char _KernelEnd;
 
 static uint64_t s_free_area_start;
 uint64_t s_stalloced_total;
@@ -12,12 +12,12 @@ uint64_t s_stalloced_total;
 }
 
 void stalloc_disable() {
-    s_stalloced_total = s_free_area_start - ((uint64_t)&KERNEL_END);
+    s_stalloced_total = s_free_area_start - ((uint64_t)&_KernelEnd);
     s_free_area_start = 0xffffffff;
 }
 
 void stalloc_init() {
-    s_free_area_start = (uint64_t)&KERNEL_END;
+    s_free_area_start = (uint64_t)&_KernelEnd;
     s_stalloced_total = 0;
 
     ALIGN_TO_4B(s_free_area_start);
@@ -39,4 +39,6 @@ uint64_t* stalloc(int bytes) {
     uint64_t res = s_free_area_start;
     s_free_area_start += bytes;
     ALIGN_TO_4B(s_free_area_start);
+
+    return (uint64_t *)res;
 }

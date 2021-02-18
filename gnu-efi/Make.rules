@@ -34,10 +34,12 @@
 #    SUCH DAMAGE.
 #
 
-%.efi: %.so
+%.efi %.EFI: %.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
 		    -j .reloc $(FORMAT) $*.so $@
+
+			
 
 %.efi.debug: %.so
 	$(OBJCOPY) -j .debug_info -j .debug_abbrev -j .debug_aranges \

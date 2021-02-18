@@ -1,6 +1,6 @@
 #pragma once
 
-__attribute__((noreturn)) void Panic(const char* panicMessage);
+void Panic(const char* panicMessage);
 __attribute__((noreturn)) void AssertionPanic(const char* file, int line, const char* message);
 
 #define KERNEL_ASSERT(condition) \

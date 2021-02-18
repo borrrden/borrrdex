@@ -30,3 +30,4 @@ struct KernelInfo {
 };
 
 KernelInfo InitializeKernel(BootInfo* bootInfo);
+PageTableManager* KernelPageTableManager();

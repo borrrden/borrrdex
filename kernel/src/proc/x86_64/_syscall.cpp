@@ -15,9 +15,6 @@ extern "C" void syscall_init() {
 }
 
 extern "C" void syscall_handle(regs_t* registers) {
-    interrupt_status_t status = interrupt_get_state();
-    interrupt_enable();
-
+    WithInterrupts wi(true);
     registers->rax = syscall_entry(registers->rdi, registers->rsi, registers->rdx, registers->rcx);
-    interrupt_set_state(status);
 }

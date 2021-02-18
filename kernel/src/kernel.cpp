@@ -10,6 +10,7 @@
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "drivers/x86_64/pit.h"
 #include "Panic.h"
+#include "string.h"
 
 #include <cstddef>
 
@@ -34,6 +35,7 @@ void render(datetime_t* dt, void* context) {
 
 extern "C" void _start(BootInfo* bootInfo) {
     uart_init();
+    memset(bootInfo->framebuffer->baseAddress, 0, bootInfo->framebuffer->bufferSize);
 
     KernelInfo kernelInfo = InitializeKernel(bootInfo);
     if(bootInfo->rsdp) {

@@ -7,6 +7,7 @@
 #include "drivers/x86_64/keyboard.h"
 #include "userinput/keymaps.h"
 #include "arch/x86_64/io/io.h"
+#include "stalloc.h"
 
 PageTableManager gPageTableManager(NULL);
 
@@ -38,6 +39,10 @@ static void PrepareMemory(BootInfo* bootInfo) {
     asm ("mov %0, %%cr3" : : "r" (PML4));
 }
 
+PageTableManager* KernelPageTableManager() {
+    return &gPageTableManager;
+}
+
 void PrepareInterrupts() {
     interrupt_init();
 
@@ -49,6 +54,8 @@ void PrepareInterrupts() {
 
 static BasicRenderer r(NULL, NULL);
 KernelInfo InitializeKernel(BootInfo* bootInfo) {
+    stalloc_init();
+
     r = BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_font);
     GlobalRenderer = &r;
     
