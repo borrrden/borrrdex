@@ -10,3 +10,20 @@
 #define STDIN_HANDLE    0x0
 #define STDOUT_HANDLE   0x1
 #define STDERR_HANDLE   0x2
+
+#include <sys/cdefs.h>
+#include <stdint.h>
+
+__BEGIN_DECLS
+
+void syscall_init();
+
+typedef struct syscall_regs {
+    uint64_t rax, rcx, rdx, rbx;
+    uint64_t rsp, rbp, rsi, rdi;
+
+    uint64_t r8, r9, r10, r11;
+    uint64_t r12, r13, r14, r15;
+} syscall_regs_t;
+
+__END_DECLS

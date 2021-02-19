@@ -1,6 +1,7 @@
 #include "interrupt.h"
 #include "idt.h"
 #include "arch/x86_64/gdt/gdt.h"
+#include "arch/x86_64/tss.h"
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/pic.h"
 #include <cstddef>
@@ -12,6 +13,7 @@ extern "C" void yield_irq_handler();
 
 void interrupt_init() {
     gdt_init();
+    tss_init();
     idt_init();
 
     pic_init(0b11111111, 0b11111111);

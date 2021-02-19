@@ -6,7 +6,7 @@ class PageTableManager {
 public:
     PageTableManager(PageTable* PML4Address);
     
-    void MapMemory(void* virtualMemory, void* physicalMemory);
+    void MapMemory(void* virtualMemory, void* physicalMemory, bool forUser);
 
 private:
     PageTable* _pml4;

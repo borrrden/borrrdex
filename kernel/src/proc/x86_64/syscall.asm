@@ -1,10 +1,10 @@
 [bits 64]
 
 %macro PUSHAQ 0
-    mov [rsp-0x8],  r15
-    mov [rsp-0x10], r14
-    mov [rsp-0x18], r13
-    mov [rsp-0x20], r12
+    mov [rsp-0x8],  rdi
+    mov [rsp-0x10], rsi
+    mov [rsp-0x18], rdx
+    mov [rsp-0x20], r8
     mov [rsp-0x28], r11
     mov [rsp-0x30], r10
     mov [rsp-0x38], r9
@@ -42,47 +42,53 @@
 
 GLOBAL syscall_irq_handler
 extern syscall_handle
+extern tss_get
 
 syscall_irq_handler:
     cli
 
-    push qword 0
-    push qword 0x80
-
     PUSHAQ
 
+    mov rdi, 0
+    call tss_get
     mov rdi, rsp
+    mov rsp, qword [rax + 0x04]
+    push rdi
 
     call syscall_handle
 
+    pop rsp
     POPAQ
 
     sti
 
-    add rsp, 0x16
-    sysretq
+    o64 sysret
 
 GLOBAL __syscall_setup
 extern syscall_irq_handler
 
 __syscall_setup:
-    ; EFER MSR, enable SCE bit
+    mov rax, $syscall_irq_handler
+    mov r8, rax
+    shr r8, 0x20
+    mov rdx, r8
+
+    ; Truncate to 32-bits
+    mov eax, eax
+    mov edx, edx
+
+    ; LSTAR MSR, set handler RIP
+    mov rcx, 0xc0000082
+    wrmsr
+
+    ; While we are here, set up syscall / sysret
     mov rcx, 0xc0000080
     rdmsr
     or eax, 1
     wrmsr
-
-    ; STAR MSR, set code segment selectors
-    ; User -> 0x18
-    ; Kernel -> 0x08
     mov rcx, 0xc0000081
     rdmsr
     mov edx, 0x00180008
-    wrmsr
-
-    ; LSTAR MSR, set handler RIP
-    mov rcx, 0xc0000082
-    mov eax, $syscall_irq_handler
     wrmsr
 
     ret

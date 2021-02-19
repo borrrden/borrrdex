@@ -21,7 +21,7 @@
 
 uint32_t _syscall(uint64_t syscall, uint64_t a1, uint64_t a2, uint64_t a3);
 
-inline int do_write(char* buffer, size_t *size, char c, int flags) {
+int do_write(char* buffer, size_t start, size_t *size, char c, int flags) {
     if(size == 0) {
         return 0;
     }
@@ -29,29 +29,30 @@ inline int do_write(char* buffer, size_t *size, char c, int flags) {
     if(flags & TTY) {
         putchar(c);
     } else {
-        *buffer++ = c;
+        *(buffer + start) = c;
     }
 
     *size -= 1;
     return 1;
 }
 
-int printn(char* buffer, size_t* size, int flags, int width, const char* str, int n) {
+int printn(char* buffer, size_t start, size_t* size, int flags, int width, const char* str, int n) {
+    buffer += start;
     if(!(flags & LADJUST)) {
         char pad = PADCHAR;
         for(int i = 0; i < (width - n); i++) {
-            do_write(buffer, size, pad, flags);
+            buffer += do_write(buffer, 0, size, pad, flags);
         }
     }
 
     for(size_t i = 0; i < n; i++) {
-        do_write(buffer, size, str[i], flags);
+        buffer += do_write(buffer, 0, size, str[i], flags);
     }
 
     if((flags & LADJUST)) {
         char pad = PADCHAR;
         for(int i = 0; i < (width - n); i++) {
-            do_write(buffer, size, pad, flags);
+            buffer += do_write(buffer, 0, size, pad, flags);
         }
     }
 
@@ -59,12 +60,12 @@ int printn(char* buffer, size_t* size, int flags, int width, const char* str, in
     return written;
 }
 
-int print_integer(char* buffer, size_t *size, int flags, int width, uint64_t arg, int base, char hexStart) {
+int print_integer(char* buffer, size_t start, size_t *size, int flags, int width, uint64_t arg, int base, char hexStart) {
+    buffer += start;
     char num_buffer[23];
     uint8_t index = 22;
     if(arg == 0) {
-        do_write(buffer, size, '0', flags);
-        return 1;
+        num_buffer[index--] = '0';
     }
 
      while(arg > 0) {
@@ -74,10 +75,10 @@ int print_integer(char* buffer, size_t *size, int flags, int width, uint64_t arg
     }
 
     index++;
-    return printn(buffer, size, flags, width, (const char *)&num_buffer[index], 23 - index);
+    return printn(buffer, 0, size, flags, width, (const char *)&num_buffer[index], 23 - index);
 }
 
-inline int64_t signed_arg(int flags, va_list ap) {
+int64_t signed_arg(int flags, va_list ap) {
     if(flags & LLONGINT) {
         return (int64_t)va_arg(ap, long long);
     } 
@@ -89,7 +90,7 @@ inline int64_t signed_arg(int flags, va_list ap) {
     return (int64_t)va_arg(ap, int);
 }
 
-inline uint64_t unsigned_arg(int flags, va_list ap) {
+uint64_t unsigned_arg(int flags, va_list ap) {
     if(flags & LLONGINT) {
         return (uint64_t)va_arg(ap, unsigned long long);
     } 
@@ -118,7 +119,8 @@ static int vxnprintf(char* buffer, size_t size, const char* fmt, va_list ap, int
     int written = 0;
     while(true) {
         while(*fmt != 0 && *fmt != '%') {
-            written += do_write(buffer, &size, *fmt, flags);
+            written += do_write(buffer, written, &size, *fmt, flags);
+            fmt++;
         }
 
         if(*fmt == 0) {
@@ -176,11 +178,11 @@ reswitch:switch(ch) {
             {
                 int64_t arg = signed_arg(flags, ap);
                 if(arg < 0) {
-                    written += do_write(buffer, &size, '-', flags);
+                    written += do_write(buffer, written, &size, '-', flags);
                     arg *= -1;
                 }
 
-                written += print_integer(buffer, &size, flags, width, (uint64_t)arg, 10, 0);
+                written += print_integer(buffer, written, &size, flags, width, (uint64_t)arg, 10, 0);
                 break;
             }
             case 'O':
@@ -189,17 +191,17 @@ reswitch:switch(ch) {
             case 'o':
             {
                 uint64_t arg = unsigned_arg(flags, ap);
-                written += print_integer(buffer, &size, flags, width, arg, 8, 0);
+                written += print_integer(buffer, written, &size, flags, width, arg, 8, 0);
                 break;
             }
             case 's':
             {
                 const char* arg = va_arg(ap, const char*);
                 if(!arg) {
-                    written += printn(buffer, &size, flags, width, "(null)", 6);
+                    written += printn(buffer, written, &size, flags, width, "(null)", 6);
                 } else {
                     // Todo %.*s format for specifying length
-                    written += printn(buffer, &size, flags, width, arg, strnlen(arg, __UINT32_MAX__));
+                    written += printn(buffer, written, &size, flags, width, arg, strnlen(arg, __UINT32_MAX__));
                 }
                 break;
             }
@@ -209,23 +211,23 @@ reswitch:switch(ch) {
             case 'u':
             {
                 uint64_t arg = unsigned_arg(flags, ap);
-                written += print_integer(buffer, &size, flags, width, arg, 10, 0);
+                written += print_integer(buffer, written, &size, flags, width, arg, 10, 0);
                 break;
             }
             case 'X':
             {
                 uint64_t arg = unsigned_arg(flags, ap);
-                written += print_integer(buffer, &size, flags, width, arg, 16, 'A');
+                written += print_integer(buffer, written, &size, flags, width, arg, 16, 'A');
                 break;
             }
             case 'x':
             {
                 uint64_t arg = unsigned_arg(flags, ap);
-                written += print_integer(buffer, &size, flags, width, arg, 16, 'a');
+                written += print_integer(buffer, written, &size, flags, width, arg, 16, 'a');
                 break;
             }
             case '%':
-                written += do_write(buffer, &size, '%', flags);
+                written += do_write(buffer, written, &size, '%', flags);
                 break;
             default:
                 break;

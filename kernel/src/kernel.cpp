@@ -4,6 +4,7 @@
 #include "KernelUtil.h"
 #include "Memory.h"
 #include "arch/x86_64/io/rtc.h"
+#include "arch/x86_64/tss.h"
 #include "arch/x86_64/io/serial.h"
 #include "graphics/Clock.h"
 #include "arch/x86_64/cpuid.h"
@@ -11,8 +12,12 @@
 #include "drivers/x86_64/pit.h"
 #include "Panic.h"
 #include "string.h"
+#include "ring3test.h"
+#include "paging/PageFrameAllocator.h"
 
 #include <cstddef>
+
+extern "C" __attribute__((noreturn)) void __enter_ring3(uint64_t new_stack, uint64_t jump_addr);
 
 struct KernelUpdateEntries {
     BasicRenderer *renderer;
@@ -46,23 +51,29 @@ extern "C" void _start(BootInfo* bootInfo) {
         }
     }
 
-    Clock clk;
-    KernelUpdateEntries u {
-        GlobalRenderer,
-        &clk,
-        0
-    };
 
-    rtc_chain_t renderChain = {
-        render,
-        &u,
-        NULL
-    };
+    uint64_t rsp;
+    asm volatile("mov %%rsp, %0" : "=d"(rsp));
+    tss_install(0, rsp);
 
-    register_rtc_cb(&renderChain);
-    uint64_t a = 0x80000001, b, c, d;
-    _cpuid(&a, &b, &c, &d);
-    bool hasSyscall = d & (1 << 11);
+    void* user_stack = PageFrameAllocator::SharedAllocator()->RequestPage();
+    GlobalRenderer->Printf("\nEntering userland...\n\n");
+    __enter_ring3((uint64_t)user_stack, (uint64_t)main);
+
+    // Clock clk;
+    // KernelUpdateEntries u {
+    //     GlobalRenderer,
+    //     &clk,
+    //     0
+    // };
+
+    // rtc_chain_t renderChain = {
+    //     render,
+    //     &u,
+    //     NULL
+    // };
+
+    // register_rtc_cb(&renderChain);
     while(true) {
         asm("hlt");
     }

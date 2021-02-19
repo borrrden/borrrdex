@@ -73,8 +73,7 @@ void print_integer(putc_func_t putc, void* ctx, int flags, int width, uint64_t a
     char buffer[23];
     uint8_t index = 22;
     if(arg == 0) {
-        putc('0', ctx);
-        return;
+        buffer[index--] = '0';
     }
 
      while(arg > 0) {
