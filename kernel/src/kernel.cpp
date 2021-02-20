@@ -56,24 +56,24 @@ extern "C" void _start(BootInfo* bootInfo) {
     asm volatile("mov %%rsp, %0" : "=d"(rsp));
     tss_install(0, rsp);
 
+    Clock clk;
+    KernelUpdateEntries u {
+        GlobalRenderer,
+        &clk,
+        0
+    };
+
+    rtc_chain_t renderChain = {
+        render,
+        &u,
+        NULL
+    };
+
+    register_rtc_cb(&renderChain);
     void* user_stack = PageFrameAllocator::SharedAllocator()->RequestPage();
     GlobalRenderer->Printf("\nEntering userland...\n\n");
     __enter_ring3((uint64_t)user_stack, (uint64_t)main);
-
-    // Clock clk;
-    // KernelUpdateEntries u {
-    //     GlobalRenderer,
-    //     &clk,
-    //     0
-    // };
-
-    // rtc_chain_t renderChain = {
-    //     render,
-    //     &u,
-    //     NULL
-    // };
-
-    // register_rtc_cb(&renderChain);
+    
     while(true) {
         asm("hlt");
     }

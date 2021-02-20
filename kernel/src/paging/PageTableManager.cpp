@@ -22,6 +22,7 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
         pde.SetAddress((uint64_t)pdp >> 12);
         pde.SetFlag(PT_Flag::Present, true);
         pde.SetFlag(PT_Flag::ReadWrite, true);
+        pde.SetFlag(PT_Flag::UserSuper, forUser);
         _pml4->entries[indexer.GetPDP()] = pde;
     } else {
         if(forUser) {

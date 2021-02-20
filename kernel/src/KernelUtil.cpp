@@ -48,10 +48,10 @@ void PrepareInterrupts() {
     interrupt_init();
     syscall_init();
 
-    //keyboard_init();
+    keyboard_init();
     //ps2_mouse_init();
     //pit_init();
-    //rtc_init();
+    rtc_init();
 }
 
 static BasicRenderer r(NULL, NULL);
