@@ -1,13 +1,9 @@
 #pragma once
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
+#ifndef __cplusplus
+#error C++ only
 #endif
 
-    void keyboard_init();
+#include <cstdint>
 
-#ifdef __cplusplus
-}
-#endif
+void keyboard_init();

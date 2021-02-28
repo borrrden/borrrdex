@@ -63,7 +63,7 @@ void HandleKeyboard(uint8_t scancode) {
     }
 }
 
-extern "C" void keyboard_init() {
+void keyboard_init() {
     interrupt_register(PIC_IRQ_KEYBOARD, __keyboard_irq_handler);
 }
 

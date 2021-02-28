@@ -19,6 +19,7 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
     uint64_t bitmapSize = memorySize / 4096 / 8 + 1;
     void* bitmapAddr = stalloc(bitmapSize);
     _pageBitmap = Bitmap(bitmapSize, (uint8_t *)bitmapAddr);
+    _pageBitmap.Clear();
     uint64_t last_address = (uint64_t)stalloc(1);
     stalloc_disable();
 
@@ -42,6 +43,23 @@ void* PageFrameAllocator::RequestPage() {
     }
 
     return NULL; // Page Frame Swap
+}
+
+void* PageFrameAllocator::RequestPages(uint64_t pageCount) {
+    uint64_t remaining = pageCount;
+    uint64_t start = _pageBitmapIndex;
+    for(; _pageBitmapIndex < _pageBitmap.GetSize() * 8; _pageBitmapIndex++) {
+        if(!_pageBitmap[_pageBitmapIndex]) {
+            if(--remaining == 0) {
+                return (void *)(start * 4096);
+            }
+        } else {
+            remaining = pageCount;
+            start = _pageBitmapIndex + 1;
+        }
+    }
+
+    return nullptr;
 }
 
 void PageFrameAllocator::FreePage(void* address) {

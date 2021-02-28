@@ -37,6 +37,20 @@ void port_write_32(uint16_t port, uint32_t value) {
     asm volatile ("outl %1, %0" :: "dN"(port), "a"(value));
 }
 
+void port_read(uint16_t port, uint64_t count, uint8_t* buffer) {
+    asm volatile("rep;insw"
+               : "=D"(buffer), "=c"(count)
+               : "D"(buffer), "c"(count), "d"((uint64_t)port)
+               : "memory");
+}
+
+void port_write(uint16_t port, uint64_t count, uint8_t* buffer) {
+    asm volatile("rep;outsw"
+               : "=S"(buffer), "=c"(count)
+               : "S"(buffer), "c"(count), "d"((uint64_t)port)
+               : "memory");
+}
+
 constexpr uint16_t LADJUST =	0x0004;		/* left adjustment */
 constexpr uint16_t LONGINT =	0x0010;		/* long integer */
 constexpr uint16_t LLONGINT =   0x0020;		/* long long integer */

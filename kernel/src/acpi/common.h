@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <sys/cdefs.h>
 
 // Common header for all ACPI System Descriptor Tables
 // ACPI 6.4 p.141

@@ -28,8 +28,7 @@ typedef struct
     uint16_t subsystem_id;
     uint32_t expansion_rom_base;
     uint8_t capabilities_ptr;
-    uint64_t reserved1:48;
-    uint64_t reserved2;
+    uint64_t reserved;
     uint8_t interrupt_line;
     uint8_t interrupt_pin;
     uint8_t min_grant;
@@ -67,3 +66,6 @@ typedef struct {
 pci_header_t* pci_get_device(void* cfgArea, uint8_t bus, uint8_t device, uint8_t function);
 void pci_print_all_bar(pci_header_t* h);
 void pci_print_bus(void* base_address, uint8_t bus);
+
+// Remove these later and make modules
+void* pci_find_type(void* cfgArea, int cls, int subclass, int prog_if);

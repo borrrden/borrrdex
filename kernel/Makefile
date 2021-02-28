@@ -4,11 +4,11 @@ OSNAME = borrrdex
 GNUEFI = ../gnu-efi
 OVMFDIR = ../OVMFbin
 LDS = kernel.ld
-CC = gcc
+CC = g++
 ASMC = nasm
 LD = ld
 
-override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -mno-red-zone -fno-rtti -fno-exceptions -g $(CFLAGS)
+override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -fno-builtin -mno-red-zone -fno-rtti -fno-exceptions -Wno-address-of-packed-member -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
 

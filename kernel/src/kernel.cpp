@@ -14,6 +14,8 @@
 #include "string.h"
 #include "ring3test.h"
 #include "paging/PageFrameAllocator.h"
+#include "fs/vfs.h"
+#include "stdatomic.h"
 
 #include <cstddef>
 
@@ -40,7 +42,6 @@ void render(datetime_t* dt, void* context) {
 
 extern "C" void _start(BootInfo* bootInfo) {
     uart_init();
-    memset(bootInfo->framebuffer->baseAddress, 0, bootInfo->framebuffer->bufferSize);
 
     KernelInfo kernelInfo = InitializeKernel(bootInfo);
     if(bootInfo->rsdp) {
@@ -51,10 +52,50 @@ extern "C" void _start(BootInfo* bootInfo) {
         }
     }
 
-
     uint64_t rsp;
     asm volatile("mov %%rsp, %0" : "=d"(rsp));
     tss_install(0, rsp);
+
+    // Before Uncommenting the below you will need to use KUDOS tfstool to create a disk
+    // and attach it to the virtual machine.  More details about Trivial Filesystem here:
+    // https://kudos.readthedocs.io/en/latest/trivial-filesystem.html
+    //
+    // I entrust you to be able to figure out how to build and use tfstool from their repo
+    // (it is in the kudos/utils/ folder)
+    
+    /*
+    openfile_t shellFile = vfs_open("[disk]/shell");
+    if(shellFile >= 0) {
+        VirtualFilesystemFile vf(shellFile);
+        GlobalRenderer->Printf("Opened file 'shell' on '[disk]' (size %d bytes [%d KiB])!\n", vf.size(), vf.size() / 1024);
+    }
+
+    GlobalRenderer->Printf("Trying to open test.txt\n");
+    openfile_t testFile = vfs_open("[disk]/test.txt");
+    if(testFile == VFS_NOT_FOUND) {
+        const char* testText = "This is a test!";
+        GlobalRenderer->Printf("Creating test.txt\n");
+        int r = vfs_create("[disk]/test.txt", strnlen(testText, 64));
+        testFile = vfs_open("[disk]/test.txt");
+        if(testFile >= 0) {
+            VirtualFilesystemFile vf(testFile);
+            vf.write((void *)testText, strnlen(testText, 64));
+        }
+    }
+    
+    testFile = vfs_open("[disk]/test.txt");
+    if(testFile >= 0) {
+        VirtualFilesystemFile vf(testFile);
+        char buffer[64];
+        int num_read = vf.read(buffer, 64);
+        buffer[num_read] = 0;
+        GlobalRenderer->Printf("Read contents of test.txt: %s\n", buffer);
+    }
+    
+    GlobalRenderer->Printf("Removing test.txt\n");
+    vfs_remove("[disk]/test.txt");
+    */
+
 
     Clock clk;
     KernelUpdateEntries u {
@@ -73,7 +114,7 @@ extern "C" void _start(BootInfo* bootInfo) {
     void* user_stack = PageFrameAllocator::SharedAllocator()->RequestPage();
     GlobalRenderer->Printf("\nEntering userland...\n\n");
     __enter_ring3((uint64_t)user_stack, (uint64_t)main);
-    
+
     while(true) {
         asm("hlt");
     }

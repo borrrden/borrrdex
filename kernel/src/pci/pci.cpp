@@ -205,3 +205,70 @@ void pci_print_all_bar(pci_header_t* h)
 }
 
 #pragma GCC diagnostic pop
+
+bool is_match(pci_header_t* header, int cls, int subclass, int prog_if) {
+    if(header->class_code != (uint8_t)cls) {
+        return false;
+    }
+
+    if(subclass != -1 && subclass != header->subclass) {
+        return false;
+    }
+
+    if(prog_if != -1 && prog_if != header->prog_interface) {
+        return false;
+    }
+
+    return true;
+}
+
+void* pci_find_type_bus(void* base_address, uint8_t num, int cls, int subclass, int prog_if);
+
+void* pci_find_type_device(void* base, uint8_t* device, uint8_t num, int cls, int subclass, int prog_if) {
+    pci_header_t* h = (pci_header_t *)device;
+    if(!pci_device_exists(h)) {
+        return nullptr;
+    }
+
+    if(is_match(h, cls, subclass, prog_if)) {
+        return h;
+    }
+
+    if(h->header_type & 0x80) {
+        device += 0x1000;
+        for(uint8_t i = 1; i < 8; i++, device += 0x1000) {
+            h = (pci_header_t *)device;
+            if(is_match(h, cls, subclass, prog_if)) {
+                return h;
+            }
+
+            if(h->class_code == 0x06 && h->subclass == 0x04) {
+                void* result = pci_find_type_bus(base, ((pci_to_pci_bridge_t*)h)->secondary_bus, cls, subclass, prog_if);
+                if(result) {
+                    return result;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+void* pci_find_type_bus(void* base_address, uint8_t num, int cls, int subclass, int prog_if) {
+    uint8_t* base = (uint8_t *)base_address;
+    uint8_t* bus = base + (num * 0x100000);
+    uint8_t* device = bus;
+
+    for(uint8_t i = 0; i < 32; i++, device += 0x8000) {
+        void* result = pci_find_type_device(base, device, i, cls, subclass, prog_if);
+        if(result) {
+            return result;
+        }
+    }
+
+    return nullptr;
+}
+
+void* pci_find_type(void* cfgArea, int cls, int subclass, int prog_if) {
+    return pci_find_type_bus(cfgArea, 0, cls, subclass, prog_if);
+}

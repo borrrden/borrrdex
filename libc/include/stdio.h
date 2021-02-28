@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sys/cdefs.h>
+#include "__config.h"
 
 __BEGIN_DECLS
 

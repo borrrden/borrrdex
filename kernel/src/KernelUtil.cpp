@@ -9,6 +9,13 @@
 #include "arch/x86_64/io/io.h"
 #include "proc/syscall.h"
 #include "stalloc.h"
+#include "arch/x86_64/io/serial.h"
+#include "pci/pci.h"
+#include "acpi/xsdt.h"
+#include "acpi/mcfg.h"
+#include "drivers/disk.h"
+#include "drivers/ahci/AHCIController.h"
+#include "fs/vfs.h"
 
 PageTableManager gPageTableManager(NULL);
 
@@ -50,8 +57,19 @@ void PrepareInterrupts() {
 
     keyboard_init();
     //ps2_mouse_init();
-    //pit_init();
+    pit_init();
     rtc_init();
+}
+
+void PrepareDisks(void* xsdt) {
+    XSDT xsdtObj(xsdt);
+    void* mcfg = xsdtObj.get(MCFG::signature);
+    MCFG mcfgObj(mcfg);
+    void* ideDevice = pci_find_type((void *)mcfgObj.data()->entries[0].base_address, 1, 6, -1);
+
+    AHCIController c((pci_device_t *)ideDevice);
+    vfs_init();
+    vfs_mount_all();
 }
 
 static BasicRenderer r(NULL, NULL);
@@ -60,6 +78,8 @@ KernelInfo InitializeKernel(BootInfo* bootInfo) {
 
     r = BasicRenderer(bootInfo->framebuffer, bootInfo->psf1_font);
     GlobalRenderer = &r;
+
+    GlobalRenderer->Clear();
     
     GlobalRenderer->Printf("borrrdex - An operating system for learning operating systems\n");
     GlobalRenderer->Printf("=============================================================\n");
@@ -69,10 +89,12 @@ KernelInfo InitializeKernel(BootInfo* bootInfo) {
 
     GlobalRenderer->Printf("Setting up memory...\n");
     PrepareMemory(bootInfo);
-    
+
     GlobalRenderer->Printf("Setting up interrupts...\n");
     KeyboardMapFunction = JP109Keyboard::translate;
     PrepareInterrupts();
+
+    PrepareDisks((void *)bootInfo->rsdp->xdst_address);
     
     return {
         &gPageTableManager

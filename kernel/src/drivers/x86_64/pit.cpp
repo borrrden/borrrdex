@@ -11,6 +11,7 @@ static timer_chain_t* s_root_chain;
 extern "C" void __pit_irq_handler();
 
 extern "C" void pit_handle() {
+    pit_counter++;
     timer_chain_t* cur = s_root_chain;
     while(cur) {
         cur->cb();
@@ -66,7 +67,7 @@ uint32_t get_clock() {
     return pit_counter;
 }
 
-void __attribute_noinline__ pit_sleepms(uint64_t ms) {
+void __attribute__((noinline)) pit_sleepms(uint64_t ms) {
     WithInterrupts wi(true);
 
     uint32_t clocks = get_clock();
@@ -77,7 +78,6 @@ void __attribute_noinline__ pit_sleepms(uint64_t ms) {
         }
 
         clocks = get_clock();
-        asm volatile("hlt");
     }
 }
 

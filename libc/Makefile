@@ -2,7 +2,7 @@ CC = gcc
 ASMC = nasm
 AR = ar
 
-override CFLAGS := -I include -fno-stack-protector -I ../kernel/src -g $(CFLAGS)
+override CFLAGS := -I include -fno-stack-protector -fno-builtin -I ../kernel/src -nostdinc -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 ARFLAGS = rcs
 

@@ -11,7 +11,7 @@
 #define STDOUT_HANDLE   0x1
 #define STDERR_HANDLE   0x2
 
-#include <sys/cdefs.h>
+#include <__config.h>
 #include <stdint.h>
 
 __BEGIN_DECLS

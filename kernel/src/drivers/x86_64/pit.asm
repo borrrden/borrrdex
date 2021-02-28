@@ -2,7 +2,6 @@
 
 GLOBAL __pit_irq_handler
 extern pit_handle
-extern pit_counter
 
 __pit_irq_handler:
     cli
@@ -25,9 +24,6 @@ __pit_irq_handler:
     mov [rsp-0x80], rax
     sub rsp, 0x80
 
-    xor rax, rax
-    mov eax, $pit_counter
-    add [rax], byte 1
     call pit_handle
 
     add rsp, 0x80

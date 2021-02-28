@@ -13,6 +13,7 @@ public:
     void LockPage(void* address);
     void LockPages(void* address, uint64_t pageCount);
     void* RequestPage();
+    void* RequestPages(uint64_t pageCount);
 
     uint64_t GetFreeRAM() const { return _freeMemory; }
     uint64_t GetUsedRAM() const { return _usedMemory; }

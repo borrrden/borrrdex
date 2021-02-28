@@ -1,9 +1,9 @@
 #include "stdio.h"
 #include "string.h"
-#include <stdbool.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <stdint.h>
+#include "stdbool.h"
+#include "stdarg.h"
+#include "stddef.h"
+#include "stdint.h"
 #include "proc/syscall.h"
 
 #define LADJUST 	0x0004		/* left adjustment */

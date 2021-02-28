@@ -111,7 +111,7 @@ void BasicRenderer::PutChar(char chr) {
 
     if(CursorPosition.x + 8 == _targetFrameBuffer->width) {
         Next();
-    } else {
+    } else if(chr != '\t') {
         CursorPosition.x += 8;
     }
 }
@@ -129,9 +129,9 @@ void BasicRenderer::PutCharAt(char chr, unsigned xOff, unsigned yOff) {
     }
 
     if(chr == '\t') {
-        CursorPosition.x++;
-        while(CursorPosition.x % TABSTOP) {
-            CursorPosition.x++;
+        CursorPosition.x += 8;
+        while(CursorPosition.x % (TABSTOP * 8)) {
+            CursorPosition.x += 8;
         }
 
         return;
