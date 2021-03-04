@@ -35,6 +35,7 @@ public:
     {}
 
     size_t count() const;
+    mcfg_config_entry_t* get(size_t idx) const;
     void print() const;
 
     bool is_valid() const;

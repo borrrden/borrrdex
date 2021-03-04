@@ -17,6 +17,9 @@ typedef struct {
 
 class AHCIController {
 public:
+    static int DetectedControllerCount();
+    static AHCIController* GetDetectedController(size_t index);
+
     AHCIController(pci_device_t* pciLocation);
     ~AHCIController();
     

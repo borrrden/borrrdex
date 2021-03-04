@@ -1,5 +1,6 @@
 #pragma once
 
+#include "drivers/modules.h"
 #include <stdint.h>
 
 static constexpr uint16_t INVALID_DEVICE = 0xFFFF;
@@ -69,3 +70,20 @@ void pci_print_bus(void* base_address, uint8_t bus);
 
 // Remove these later and make modules
 void* pci_find_type(void* cfgArea, int cls, int subclass, int prog_if);
+
+#define PCI_MODULE_INIT(name, handler, classcode, subcode) \
+    static pci_device_module_t __module_pci__##name \
+    __attribute__((section("real_modules_ptr"))) = \
+    {classcode, subcode, handler}; \
+    MODULE_DEFINE(MODULE_TYPE_PCI, name, &__module_pci__##name)
+
+extern "C" {
+    typedef int(*pci_device_handler)(pci_header_t* );
+
+    typedef struct {
+        uint8_t classcode;
+        uint8_t subclass;
+        pci_device_handler device_handler;
+    } pci_device_module_t;
+}
+

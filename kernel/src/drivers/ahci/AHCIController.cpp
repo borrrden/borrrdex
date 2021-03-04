@@ -6,6 +6,7 @@
 #include "drivers/x86_64/pit.h"
 #include "drivers/x86_64/_disk.h" // For IDE commands
 #include "drivers/atareg.h"
+#include "memory/heap.h"
 
 constexpr uint32_t AHCI_INTERNAL_VER_0_95   = 0x000905;
 constexpr uint32_t AHCI_INTERNAL_VER_1_0    = 0x010000;
@@ -18,6 +19,9 @@ constexpr uint32_t SATA_SIG_ATA     = 0x00000101;
 constexpr uint32_t SATA_SIG_ATAPI   = 0xEB140101;
 constexpr uint32_t SATA_SIG_SEMB    = 0xC33C0101;
 constexpr uint32_t SATA_SIG_PM      = 0x96690101;
+
+static AHCIController* s_detected_controllers[4];
+static int s_detected_count = 0;
 
 static inline void swap16_multi(uint16_t* buf, size_t count) {
     while(count--) {
@@ -239,6 +243,11 @@ enum FISType : uint8_t {
     PIOSetup                = 0x5F,
     DeviceBits              = 0xA1
 };
+
+static int ahci_init(pci_header_t* mem) {
+    s_detected_controllers[s_detected_count++] = new AHCIController((pci_device_t *)mem);
+    return 0;
+}
 
 static inline void set_enabled(volatile uint32_t* val, uint32_t mask, bool enabled) {
     if(enabled) {
@@ -590,6 +599,18 @@ bool AHCIController::register_achi_disk(ahci_hba_port_t* port, uint32_t index, u
     return true;
 }
 
+int AHCIController::DetectedControllerCount() {
+    return s_detected_count;
+}
+
+AHCIController* AHCIController::GetDetectedController(size_t index) {
+    if(index >= s_detected_count) {
+        return nullptr;
+    }
+
+    return s_detected_controllers[index];
+}
+
 AHCIController::AHCIController(pci_device_t* pciLocation) {
     _abar = (ahci_hba_mem_t *)(uint64_t)pciLocation->bar[5];
     PageTableManager* ptm = KernelPageTableManager();
@@ -722,3 +743,5 @@ void AHCIController::set_os_owned_semaphore(bool os_owned) {
     
     set_enabled(&_abar->bios_handoff_ctrl, ahci::BOHC_OOS_FLAG, os_owned);
 }
+
+PCI_MODULE_INIT(AHCI_PCI_MODULE, ahci_init, 0x1, 0x6);

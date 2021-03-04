@@ -300,13 +300,18 @@ static openfile_entry* vfs_verify_open(openfile_t file) {
     return openfile->filesystem ? openfile : nullptr;
 }
 
-VirtualFilesystemFile::VirtualFilesystemFile(openfile_t file)
+VirtualFilesystemFile::VirtualFilesystemFile(openfile_t file, bool owner)
     :_file(file)
+    ,_owner(owner)
 {
     KERNEL_ASSERT(_file >= 0);
 }
 
 VirtualFilesystemFile::~VirtualFilesystemFile() {
+    if(!_owner) {
+        return;
+    }
+    
     VfsOperation op;
     if(!op.isUsable()) {
         return;

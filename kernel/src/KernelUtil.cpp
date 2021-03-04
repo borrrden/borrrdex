@@ -16,6 +16,7 @@
 #include "drivers/disk.h"
 #include "drivers/ahci/AHCIController.h"
 #include "fs/vfs.h"
+#include "memory/heap.h"
 
 PageTableManager gPageTableManager(NULL);
 
@@ -23,28 +24,15 @@ static void PrepareMemory(BootInfo* bootInfo) {
     uint64_t mMapEntries = bootInfo->mMapSize / bootInfo->mMapDescriptorSize;
     PageFrameAllocator* allocator = PageFrameAllocator::SharedAllocator();
     allocator->ReadEFIMemoryMap(bootInfo->mMap, bootInfo->mMapSize, bootInfo->mMapDescriptorSize);
-    allocator->LockPages(0x0, 256);
+
+    uint64_t memorySize = GetMemorySize(bootInfo->mMap, mMapEntries, bootInfo->mMapDescriptorSize);
+    PageTableManager::SetSystemMemorySize(memorySize);
+    PageTableManager::SetFramebuffer(bootInfo->framebuffer);
 
     PageTable* PML4 = (PageTable *)allocator->RequestPage();
     memset(PML4, 0, 0x1000);
     gPageTableManager = PageTableManager(PML4);
-    
-    for(uint64_t t = 0; t < GetMemorySize(bootInfo->mMap, mMapEntries, bootInfo->mMapDescriptorSize); t += 0x1000) {
-        gPageTableManager.MapMemory((void *)t, (void *)t, true);
-    }
-
-    for(uint64_t t = 0xb0000000; t < 0xb0000000 + 0x10000000; t += 0x1000) {
-        gPageTableManager.MapMemory((void *)t, (void *)t, false);
-    }
-
-    uint64_t fbBase = (uint64_t)bootInfo->framebuffer->baseAddress;
-    uint64_t fbSize = (uint64_t)bootInfo->framebuffer->bufferSize + 0x1000;
-    PageFrameAllocator::SharedAllocator()->LockPages((void *)fbBase, fbSize / 0x1000 + 1);
-    for(uint64_t t = fbBase; t < fbBase + fbSize; t += 0x1000) {
-        gPageTableManager.MapMemory((void *)t, (void *)t, false);
-    }
-
-    asm ("mov %0, %%cr3" : : "r" (PML4));
+    gPageTableManager.WriteToCR3();
 }
 
 PageTableManager* KernelPageTableManager() {
@@ -61,18 +49,13 @@ void PrepareInterrupts() {
     rtc_init();
 }
 
-void PrepareDisks(void* xsdt) {
-    XSDT xsdtObj(xsdt);
-    void* mcfg = xsdtObj.get(MCFG::signature);
-    MCFG mcfgObj(mcfg);
-    void* ideDevice = pci_find_type((void *)mcfgObj.data()->entries[0].base_address, 1, 6, -1);
-
-    AHCIController c((pci_device_t *)ideDevice);
+void PrepareDisks() {
     vfs_init();
     vfs_mount_all();
 }
 
 static BasicRenderer r(NULL, NULL);
+static void* s_system_rsdp_address;
 KernelInfo InitializeKernel(BootInfo* bootInfo) {
     stalloc_init();
 
@@ -90,13 +73,30 @@ KernelInfo InitializeKernel(BootInfo* bootInfo) {
     GlobalRenderer->Printf("Setting up memory...\n");
     PrepareMemory(bootInfo);
 
+    heap_init((void *)0x90000000, 0x10);
+
     GlobalRenderer->Printf("Setting up interrupts...\n");
     KeyboardMapFunction = JP109Keyboard::translate;
     PrepareInterrupts();
+    s_system_rsdp_address = bootInfo->rsdp;
 
-    PrepareDisks((void *)bootInfo->rsdp->xdst_address);
+    modules_init();
+
+    PrepareDisks();
     
     return {
         &gPageTableManager
     };
+}
+
+const void* SystemRSDPAddress() {
+    return s_system_rsdp_address;
+}
+
+void* operator new(unsigned long size) {
+    return kmalloc(size);
+}
+
+void operator delete(void* address) {
+    return kfree(address);
 }

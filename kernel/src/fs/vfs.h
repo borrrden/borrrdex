@@ -90,7 +90,7 @@ void vfs_mount_all();
 // A class for working with a file from the VFS
 class VirtualFilesystemFile {
 public:
-    VirtualFilesystemFile(openfile_t file);
+    VirtualFilesystemFile(openfile_t file, bool owner);
     ~VirtualFilesystemFile();
 
     int seek(int position);
@@ -100,6 +100,7 @@ public:
     
 private:
     openfile_t _file;
+    bool _owner;
     VirtualFilesystemFile(const VirtualFilesystemFile &other) = delete;
     VirtualFilesystemFile(VirtualFilesystemFile &&other) = delete;
 };

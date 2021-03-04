@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "Memory.h"
+#include "memory/Memory.h"
 #include "Bitmap.h"
 #include "paging/PageFrameAllocator.h"
 #include "paging/PageMapIndexer.h"
@@ -31,3 +31,5 @@ struct KernelInfo {
 
 KernelInfo InitializeKernel(BootInfo* bootInfo);
 PageTableManager* KernelPageTableManager();
+const void* SystemRSDPAddress();
+void InitializeNewPageTableManager(PageTableManager& ptm);

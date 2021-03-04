@@ -1,6 +1,7 @@
 #include "PageFrameAllocator.h"
 #include "../graphics/BasicRenderer.h"
 #include "stalloc.h"
+#include "KernelUtil.h"
 
 PageFrameAllocator sAllocator;
 PageFrameAllocator* PageFrameAllocator::SharedAllocator() {
@@ -23,14 +24,19 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
     uint64_t last_address = (uint64_t)stalloc(1);
     stalloc_disable();
 
-    LockPages(bitmapAddr, _pageBitmap.GetSize() / 4096 + 1);
-
+    ReservePages(0, memorySize / 4096 + 1);
     for(int i = 0; i < mMapEntries; i++) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR *)((uint64_t)mMap + i * mMapDescSize);
-        if(desc->type != 7) { // type = EfiConventionalMemory
-            ReservePages(desc->physAddr, desc->numPages);
+        if(desc->type == 7) { // type = EfiConventionalMemory
+            UnreservePages(desc->physAddr, desc->numPages);
         }
     }
+
+    ReservePages(0, 256);
+
+    uint64_t ke = (uint64_t)&_KernelEnd & ~0xfff;
+    uint64_t se = (last_address + 0xfff) & ~0xfff;
+    ReservePages((void *)ke, (se - ke) / 0x1000);
 
 }
 
@@ -51,6 +57,7 @@ void* PageFrameAllocator::RequestPages(uint64_t pageCount) {
     for(; _pageBitmapIndex < _pageBitmap.GetSize() * 8; _pageBitmapIndex++) {
         if(!_pageBitmap[_pageBitmapIndex]) {
             if(--remaining == 0) {
+                LockPages((void *)(start * 4096), pageCount);
                 return (void *)(start * 4096);
             }
         } else {

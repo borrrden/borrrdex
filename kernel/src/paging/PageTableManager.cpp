@@ -2,13 +2,31 @@
 #include "PageMapIndexer.h"
 #include "PageFrameAllocator.h"
 #include "string.h"
+#include "KernelUtil.h"
 
 #include <cstdint>
+
+static uint64_t s_system_memory_size;
+static Framebuffer* s_framebuffer;
+
+void PageTableManager::SetSystemMemorySize(uint64_t bytes) {
+    s_system_memory_size = bytes;
+}
+
+void PageTableManager::SetFramebuffer(Framebuffer* buffer) {
+    s_framebuffer = buffer;
+}
 
 PageTableManager::PageTableManager(PageTable* PML4Address)
     :_pml4(PML4Address)
 {
+    for(uint64_t i = 0; i < s_system_memory_size; i += 0x1000) {
+        MapMemory((void *)i, (void *)i, false);
+    }
 
+    for(uint64_t i = 0; i < s_framebuffer->bufferSize; i += 0x1000) {
+        MapMemory((void *)((uint64_t)s_framebuffer->baseAddress + i), (void *)((uint64_t)s_framebuffer->baseAddress + i), false);
+    }
 }
 
 void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool forUser) {
@@ -27,6 +45,7 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
     } else {
         if(forUser) {
             pde.SetFlag(PT_Flag::UserSuper, true);
+            _pml4->entries[indexer.GetPDP()] = pde;
         }
 
         pdp = (PageTable *)((uint64_t)pde.GetAddress() << 12);
@@ -45,6 +64,7 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
     } else {
         if(forUser) {
             pde.SetFlag(PT_Flag::UserSuper, true);
+            pdp->entries[indexer.GetPD()] = pde;
         }
 
         pd = (PageTable *)((uint64_t)pde.GetAddress() << 12);
@@ -63,6 +83,7 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
     } else {
         if(forUser) {
             pde.SetFlag(PT_Flag::UserSuper, true);
+            pd->entries[indexer.GetPT()] = pde;
         }
 
         pt = (PageTable *)((uint64_t)pde.GetAddress() << 12);
@@ -74,6 +95,12 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
     pde.SetFlag(PT_Flag::ReadWrite, true);
     pde.SetFlag(PT_Flag::UserSuper, forUser);
     pt->entries[indexer.GetP()] = pde;
-    
+}
 
+void PageTableManager::WriteToCR3() {
+    asm ("mov %0, %%cr3" : : "r" (_pml4));
+}
+
+void PageTableManager::InvalidatePage(uint64_t virtualAddress) {
+    asm volatile("invlpg (%%rax)" : : "a"(virtualAddress));
 }

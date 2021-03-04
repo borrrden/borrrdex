@@ -7,6 +7,8 @@
 #define SYSCALL_READ    0x101
 #define SYSCALL_WRITE   0x102
 
+#define SYSCALL_EXIT    0x201
+
 #define STDIN_HANDLE    0x0
 #define STDOUT_HANDLE   0x1
 #define STDERR_HANDLE   0x2

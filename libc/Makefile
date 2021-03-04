@@ -18,7 +18,7 @@ OBJS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRC))
 OBJS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%_asm.o, $(ASMSRC))
 DIRS = $(wildcard $(SRCDIR)/*)
 
-libc:	$(OBJS) link
+libc:	$(OBJS) crt0 crti crtn link
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ echo !== Compiling $^
@@ -29,6 +29,9 @@ $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
 	@ echo !== Assembling $^
 	@ mkdir -p $(@D)
 	$(ASMC) $(ASMFLAGS) $^ -f elf64 -o $@
+
+crt%: crt%.asm
+	$(ASMC) $^ -f elf64 -o $(BUILDDIR)/$@.o
 
 link:
 	@ echo !== Linking $^

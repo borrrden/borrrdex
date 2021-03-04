@@ -1,26 +1,52 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(_start)
+phys = 0x100000;
 
 SECTIONS
 {
-    . = 0x100000;
-    _KernelStart = .;
-    .text : ALIGN(0x1000)
+    .text phys : AT(phys)
     {
-        *(.text)
+        _KernelStart = .;
+        *(.boot*)
+        *(.text*)
+        . = ALIGN(4096);
     }
-    .data : ALIGN(0x1000)
+
+    _ModulesStart = .;
+    modules_ptr : {
+        *(modules_ptr)
+    }
+    _ModulesEnd = .;
+
+    real_modules_ptr : {
+        *(real_modules_ptr)
+    }
+
+    .data : AT(phys + (data - _KernelStart))
     {
+        data = .;
         *(.data)
+        PROVIDE(kernel_symbols_start = .);
+        PROVIDE(kernel_symbols_end = .);
+        . = ALIGN(4096);
     }
-    .rodata : ALIGN(0x1000)
+    .rodata : AT(phys + (rodata - _KernelStart))
     {
+        rodata = .;
         *(.rodata)
+        . = ALIGN(4096);
     }
-    .bss : ALIGN(0x1000)
+    .bss : AT(phys + (bss - _KernelStart))
     {
-        *(COMMON)
+        bss = .;
         *(.bss)
+        . = ALIGN(4096);
     }
     _KernelEnd = .;
+
+    /DISCARD/ :
+    {
+    *(.comment)
+    *(.note.gnu.build-id)
+    }
 }

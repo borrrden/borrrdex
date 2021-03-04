@@ -2,7 +2,7 @@
 
 #include "../uefi/EfiMemory.h"
 #include "../Bitmap.h"
-#include "../Memory.h"
+#include "memory/Memory.h"
 #include <stdint.h>
 
 class PageFrameAllocator {

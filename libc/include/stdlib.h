@@ -19,5 +19,6 @@ long atol(const char *);
 long long atoll(const char *);
 
 //_Noreturn void abort (void);
+_Noreturn void exit(int);
 
 __END_DECLS

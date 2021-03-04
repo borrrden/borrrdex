@@ -24,6 +24,10 @@ size_t MCFG::count() const {
     return (_data->h.length - (sizeof(_data->h) + sizeof(_data->reserved))) / sizeof(mcfg_config_entry_t);
 }
 
+mcfg_config_entry_t* MCFG::get(size_t idx) const {
+    return &(_data->entries[idx]);
+}
+
 bool MCFG::is_valid() const {
     return memcmp(_data->h.signature, signature, 4) == 0
         && acpi_checksum_ok(_data, _data->h.length);

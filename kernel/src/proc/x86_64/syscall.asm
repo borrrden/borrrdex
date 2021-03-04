@@ -43,6 +43,7 @@
 GLOBAL syscall_irq_handler
 extern syscall_handle
 extern tss_get
+extern user_landing
 
 syscall_irq_handler:
     cli
@@ -56,16 +57,25 @@ syscall_irq_handler:
     push rdi
 
     call syscall_handle
-
     pop rsp
     POPAQ
 
-    sti
+    cmp rdi, 0x201
+    je .kernel_exit
 
+    sti
     o64 sysret
+    .kernel_exit:
+        mov rdi, 0
+        call tss_get
+        mov rsp, qword [rax + 0x04]
+        mov rdi, rsi
+        sti
+        push $user_landing
+        ret
+
 
 GLOBAL __syscall_setup
-extern syscall_irq_handler
 
 __syscall_setup:
     mov rax, $syscall_irq_handler

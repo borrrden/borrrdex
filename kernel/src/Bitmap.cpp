@@ -53,8 +53,12 @@ bool Bitmap::SetNext(uint64_t* index) {
                     return true;
                 }
             }
+
+            return false;
         }
     }
+
+    return false;
 }
 
 size_t Bitmap::GetSize() const {
