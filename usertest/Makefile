@@ -2,8 +2,8 @@ CC = gcc
 LD = ld
 ASM = nasm
 
-override CFLAGS := -I ../libc/include -fno-builtin -nostdlib -nostdinc -O2 $(CFLAGS)
-LDFLAGS = 
+override CFLAGS := -I ../libc/include -fno-builtin -nostdlib -nostdinc -g $(CFLAGS)
+LDFLAGS = -static -nostdlib
 
 SRCDIR := src
 OBJDIR := lib

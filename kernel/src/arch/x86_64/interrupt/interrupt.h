@@ -28,7 +28,7 @@ interrupt_status_t interrupt_set_state(interrupt_status_t state);
 interrupt_status_t interrupt_get_state();
 int interrupt_get_cpu();
 
-void interrupt_yield();
+extern "C" void interrupt_yield();
 
 class WithInterrupts {
 public:

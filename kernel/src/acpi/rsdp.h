@@ -24,7 +24,7 @@ class RSDP {
 public:
 	static constexpr const char* signature = "RSD PTR ";
 
-	RSDP(void* data)
+	RSDP(const void* data)
 		:_data((rsdp_t *)data)
 	{}
 

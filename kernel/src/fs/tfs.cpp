@@ -8,6 +8,7 @@
 #include "graphics/BasicRenderer.h"
 #include "Panic.h"
 #include "string.h"
+#include "io/serial.h"
 
 /*
 The master data struct that is used throughout the implementation.  It contains everything needed
@@ -81,9 +82,7 @@ static int tfs_open(fs_t* fs, const char* filename) {
     gbd_request_t req = create_read_block_req(tfs->startblock + TFS_DIRECTORY_BLOCK, tfs->buffer_md);
     int r = tfs->disk->read_block(tfs->disk, &req);
     if(r == 0) {
-        GlobalRenderer->SetColor(0xffff0000);
-        GlobalRenderer->Printf("tfs_open: read error at block 0x%x\n", TFS_DIRECTORY_BLOCK);
-        GlobalRenderer->SetColor(0xffffffff);
+        uart_printf("!! tfs_open: read error at block 0x%x\r\n", TFS_DIRECTORY_BLOCK);
         return VFS_ERROR;
     }
 
@@ -94,7 +93,7 @@ static int tfs_open(fs_t* fs, const char* filename) {
         }
     }
 
-    GlobalRenderer->Printf("tfs_open: file not found\n");
+    uart_printf("tfs_open: file not found\r\n");
     return VFS_NOT_FOUND;
 }
 
@@ -550,9 +549,7 @@ fs_t* tfs_init(gbd_t* disk, uint32_t sector) {
 
     void* addr = PageFrameAllocator::SharedAllocator()->RequestPage();
     if(!addr) {
-        GlobalRenderer->SetColor(0xffff0000);
-        GlobalRenderer->Printf("tfs_init: Could not allocate memory\n");
-        GlobalRenderer->SetColor(0xffffffff);
+        uart_print("!! tfs_init: Could not allocate memory\r\n");
         return nullptr;
     }
 
@@ -562,9 +559,7 @@ fs_t* tfs_init(gbd_t* disk, uint32_t sector) {
     int r = disk->read_block(disk, &req);
     if(r == 0) {
         PageFrameAllocator::SharedAllocator()->FreePage(addr);
-        GlobalRenderer->SetColor(0xffff0000);
-        GlobalRenderer->Printf("tfs_init: Error during disk read.  Intialization Failed\n");
-        GlobalRenderer->SetColor(0xffffffff);
+        uart_print("!! tfs_init: Error during disk read.  Intialization Failed\r\n");
         return nullptr;
     }
 

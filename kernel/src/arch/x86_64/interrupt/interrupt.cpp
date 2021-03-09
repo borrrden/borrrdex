@@ -4,6 +4,7 @@
 #include "arch/x86_64/tss.h"
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/pic.h"
+#include "arch/x86_64/cpuid.h"
 #include <cstddef>
 
 extern "C" void __enable_irq();
@@ -63,8 +64,10 @@ interrupt_status_t interrupt_get_state() {
 
 int interrupt_get_cpu()
 {
-    // TODO: ???
-    return 0;
+    uint64_t a = 1, b, c, d;
+    _cpuid(&a, &b, &c, &d);
+
+    return b >> 24;
 }
 
 WithInterrupts::WithInterrupts(bool on) {

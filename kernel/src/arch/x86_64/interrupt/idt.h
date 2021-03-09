@@ -43,6 +43,8 @@ extern "C" {
      */
     void idt_init();
 
+    const void* idt_address();
+
     /**
      * Sets the specified hardware interrupt signal to use the corresponding handler
      * @param index     The IRQ number

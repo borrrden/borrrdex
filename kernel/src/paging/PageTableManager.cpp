@@ -5,9 +5,14 @@
 #include "KernelUtil.h"
 
 #include <cstdint>
+#include <utility>
 
 static uint64_t s_system_memory_size;
 static Framebuffer* s_framebuffer;
+
+void pagetable_setcr3(uint64_t address) {
+    asm ("mov %%rax, %%cr3" : : "a" (address));
+}
 
 void PageTableManager::SetSystemMemorySize(uint64_t bytes) {
     s_system_memory_size = bytes;
@@ -98,7 +103,7 @@ void PageTableManager::MapMemory(void* virtualMemory, void* physicalMemory, bool
 }
 
 void PageTableManager::WriteToCR3() {
-    asm ("mov %0, %%cr3" : : "r" (_pml4));
+    pagetable_setcr3((uint64_t)_pml4);
 }
 
 void PageTableManager::InvalidatePage(uint64_t virtualAddress) {

@@ -1,13 +1,23 @@
 #include "gdt.h"
 
+typedef struct {
+    uint16_t limit;
+    uint32_t base;
+} gdt_32_t;
+
 static __attribute__((aligned(0x1000))) gdt_desc_t s_gdt_descriptors[GDT_MAX_DESCRIPTORS];
 static gdt_t s_gdt;
+static gdt_32_t s_gdt_32;
 static uint32_t s_gdt_index;
 
 constexpr uint8_t BASE_DESC = GDT_DESC_PRESENT | GDT_DESC_READWRITE | GDT_DESC_CODEDATA;
 constexpr uint8_t BASE_GRAN = GDT_GRAN_64BIT | GDT_GRAN_4K;
 
 extern "C" void __load_gdt(gdt_t* gdt);
+
+extern "C" const void* gdt_address() {
+    return &s_gdt_32;
+}
 
 void gdt_init() {
     s_gdt.limit = (sizeof(gdt_desc_t) * GDT_MAX_DESCRIPTORS) - 1;

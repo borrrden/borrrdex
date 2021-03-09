@@ -13,6 +13,9 @@
 #include "uefi/EfiMemory.h"
 #include "acpi/rsdp.h"
 
+#define MIN(arg1,arg2) ((arg1) > (arg2) ? (arg2) : (arg1))
+#define MAX(arg1,arg2) ((arg1) > (arg2) ? (arg1) : (arg2))
+
 struct BootInfo {
 	Framebuffer* framebuffer;
 	PSF1_FONT* psf1_font;

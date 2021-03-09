@@ -22,7 +22,7 @@
 uint32_t _syscall(uint64_t syscall, uint64_t a1, uint64_t a2, uint64_t a3);
 
 int do_write(char* buffer, size_t start, size_t *size, char c, int flags) {
-    if(size == 0) {
+    if(*size == 0) {
         return 0;
     }
 

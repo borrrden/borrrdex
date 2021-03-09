@@ -71,7 +71,7 @@ void __attribute__((noinline)) pit_sleepms(uint64_t ms) {
     WithInterrupts wi(true);
 
     uint32_t clocks = get_clock();
-    uint32_t ticks = (uint32_t)(ms / (1024 / PIT_FREQUENCY)) + clocks;
+    uint32_t ticks = (uint32_t)(ms / (1000 / PIT_FREQUENCY)) + clocks;
     while(true) {
         if(clocks > ticks) {
             break;

@@ -7,25 +7,19 @@
 #include "paging/PageTableManager.h"
 #include <cstdint>
 
-class ThreadContext {
-public:
-    void initialize(uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args);
+typedef struct {
+    uint64_t* stack;
+    uint64_t rip;
+    uint64_t flags;
+    uint64_t pml4;
+    uint64_t* virt_memory;
+    void* prev_context;
+} context_t;
 
-    void set_ip(uint64_t ip) { _rip = ip; }
-    void set_sp(uint64_t sp) { _stack = (uint64_t *)sp; }
-
-    void enter_userland();
-    void enable_interrupts();
-
-    void* get_prev_context() const { return _prevContext; }
-    void set_prev_context(void* prev) { _prevContext = prev; }
-private:
-    uint64_t* _stack;
-    uint64_t _rip;
-    uint64_t _flags;
-    PageTableManager* _pageTableManager;
-    void* _prevContext;
-};
+void context_init(context_t* ctx, uint64_t entry, uint64_t endentry, uint64_t stack, uint32_t args);
+void context_enter_userland(context_t* ctx);
+void context_enable_ints(context_t* ctx);
+void context_set_sp(context_t* ctx, uint64_t sp);
+void context_set_ip(context_t* ctx, uint64_t ip);
 
 void cswitch_vector_code();
-void cswitch_to_userland(ThreadContext* usercontext);

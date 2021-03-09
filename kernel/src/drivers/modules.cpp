@@ -1,5 +1,6 @@
 #include "modules.h"
 #include "graphics/BasicRenderer.h"
+#include "io/serial.h"
 
 extern "C" void modules_init() {
     int err;
@@ -11,12 +12,12 @@ extern "C" void modules_init() {
             case MODULE_TYPE_PCI:
                 continue;
             default:
-                GlobalRenderer->Printf("Modules: %s of type %d not implemented\n", 
+                uart_printf("Modules: %s of type %d not implemented\n", 
                     module->module_name, module->module_type);
         }
 
         if(err) {
-            GlobalRenderer->Printf("Modules: %s failed initialization with error %d\n",
+            uart_printf("Modules: %s failed initialization with error %d\n",
                 module->module_name, err);
         }
     }

@@ -128,3 +128,5 @@ void gdt_init();
 void gdt_install_descriptor(uint64_t base, uint64_t limit, uint8_t access, uint8_t granularity);
 
 void gdt_install_tss(uint64_t base, uint64_t limit);
+
+extern "C" const void* gdt_address();

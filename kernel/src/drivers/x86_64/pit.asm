@@ -38,7 +38,6 @@ __pit_irq_handler:
     mov rdi, [rsp-0x48]
     mov rsi, [rsp-0x50]
     mov rbp, [rsp-0x58]
-    mov rsp, [rsp-0x60]
     mov rbx, [rsp-0x68]
     mov rdx, [rsp-0x70]
     mov rcx, [rsp-0x78]

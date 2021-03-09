@@ -1,10 +1,10 @@
 [bits 64]
 
 %macro PUSHAQ 0
-    mov [rsp-0x8],  rdi
-    mov [rsp-0x10], rsi
-    mov [rsp-0x18], rdx
-    mov [rsp-0x20], r8
+    mov [rsp-0x8], r15
+    mov [rsp-0x10], r14
+    mov [rsp-0x18], r13
+    mov [rsp-0x20], r12
     mov [rsp-0x28], r11
     mov [rsp-0x30], r10
     mov [rsp-0x38], r9
@@ -33,7 +33,6 @@
     mov rdi, [rsp-0x48]
     mov rsi, [rsp-0x50]
     mov rbp, [rsp-0x58]
-    mov rsp, [rsp-0x60]
     mov rbx, [rsp-0x68]
     mov rdx, [rsp-0x70]
     mov rcx, [rsp-0x78]
@@ -43,7 +42,7 @@
 GLOBAL syscall_irq_handler
 extern syscall_handle
 extern tss_get
-extern user_landing
+extern process_finish
 
 syscall_irq_handler:
     cli
@@ -71,7 +70,7 @@ syscall_irq_handler:
         mov rsp, qword [rax + 0x04]
         mov rdi, rsi
         sti
-        push $user_landing
+        push $process_finish
         ret
 
 

@@ -4,7 +4,7 @@
 #include "graphics/BasicRenderer.h"
 #include "stdatomic.h"
 #include "Panic.h"
-
+#include "io/serial.h"
 #include "string.h"
 #include <utility>
 
@@ -157,13 +157,13 @@ void vfs_init() {
 
     vfs_ops = 0;
     vfs_usable = true;
-    GlobalRenderer->Printf("VFS: Max filesystems: %d, Max open files: %d\n", CONFIG_MAX_FILESYSTEMS, CONFIG_MAX_OPEN_FILES);
+    uart_printf("VFS: Max filesystems: %d, Max open files: %d\r\n", CONFIG_MAX_FILESYSTEMS, CONFIG_MAX_OPEN_FILES);
 }
 
 int vfs_mount_fs(gbd_t* disk, char* volumename) {
     fs_t* filesystem = filesystems_try_all(disk);
     if(!filesystem) {
-        GlobalRenderer->Printf("VFS: No filesystem was found on block device 0x%08x\n", disk->device->io_address);
+        uart_printf("VFS: No filesystem was found on block device 0x%08x\r\n", disk->device->io_address);
         return VFS_NO_SUCH_FS;
     }
 
@@ -172,16 +172,16 @@ int vfs_mount_fs(gbd_t* disk, char* volumename) {
     }
 
     if(volumename[0] == 0) {
-        GlobalRenderer->Printf("VFS: Unknown filesystem volume name, skipping mounting\n");
+        uart_printf("VFS: Unknown filesystem volume name, skipping mounting\r\n");
         filesystem->unmount(filesystem);
         return VFS_INVALID_PARAMS;
     }
 
     int ret;
     if((ret = vfs_mount(filesystem, volumename)) == VFS_OK) {
-        GlobalRenderer->Printf("VFS: Mounted filesystem volume [%s]\n", volumename);
+        uart_printf("VFS: Mounted filesystem volume [%s]\r\n", volumename);
     } else {
-        GlobalRenderer->Printf("VFS: Mounting of volume [%s] failed", volumename);
+        uart_printf("VFS: Mounting of volume [%s] failed\r\n", volumename);
     }
 
     return ret;
@@ -224,9 +224,7 @@ openfile_t vfs_open(const char* path) {
     }
 
     if(file >= CONFIG_MAX_OPEN_FILES) {
-        GlobalRenderer->SetColor(0xffff0000);
-        GlobalRenderer->Printf("VFS: Warning, maximum number of open files exceeded.\n");
-        GlobalRenderer->SetColor(0xffffffff);
+        uart_print("!! VFS: Warning, maximum number of open files exceeded.\r\n");
         return VFS_LIMIT;
     }
 

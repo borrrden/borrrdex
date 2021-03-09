@@ -42,12 +42,3 @@ void memset(void* dst, int c, size_t n) {
         *current++ = c;
     }
 }
-
-__attribute__((pure)) size_t strnlen(const char* str, size_t max) {
-    size_t ret = 0;
-    while(*str++ && max--) {
-        ret++;
-    }
-
-    return ret;
-}

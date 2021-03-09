@@ -85,7 +85,6 @@ interrupt_yield:
     mov rdi, [rsp-0x48]
     mov rsi, [rsp-0x50]
     mov rbp, [rsp-0x58]
-    mov rsp, [rsp-0x60]
     mov rbx, [rsp-0x68]
     mov rdx, [rsp-0x70]
     mov rcx, [rsp-0x78]
@@ -198,22 +197,24 @@ isr_handler19:
 	push qword 19
 	jmp IsrCommon
 
+extern pic_eoi
+extern task_switch
 yield_irq_handler:
-	; cli
+	cli
 
-	; PUSHAQ
+	PUSHAQ
 
-	; mov rdi, rsp
-	; call task_switch
+	mov rdi, rsp
+	call task_switch
 
-	; mov rsp, rax
-	; mov cr3, rdx
+	mov rsp, rax
+	mov cr3, rdx
 
-	; mov rdi, 0
-	; call pic_eoi
+	mov rdi, 0
+	call pic_eoi
 
-	; POPAQ
+	POPAQ
 
-	; sti
+	sti
 	iretq
 

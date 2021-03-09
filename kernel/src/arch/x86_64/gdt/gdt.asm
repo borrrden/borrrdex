@@ -8,7 +8,7 @@ __load_gdt:
 
     ; This should probably be done earlier in the boot process
     ; Load KernelData into the Data Segment registers
-    mov ax, 0x10
+    mov rax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax

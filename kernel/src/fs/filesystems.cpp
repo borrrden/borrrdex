@@ -3,6 +3,7 @@
 #include "paging/PageFrameAllocator.h"
 #include "graphics/BasicRenderer.h"
 #include "fs/tfs.h"
+#include "io/serial.h"
 
 typedef struct partition {
     uint8_t active;
@@ -78,7 +79,7 @@ fs_t* read_extended_partition_table(gbd_t* disk, gbd_request_t* dreq, uint32_t s
         for(filesystems_t* driver = s_filesystems; driver->name != nullptr; driver++) {
             fs = driver->init(disk, (start + sector + pstart));
             if(fs) {
-                GlobalRenderer->Printf("VFS: %s initialized on disk at 0x%08x at ext partition %u\n", driver->name, 
+                uart_printf("VFS: %s initialized on disk at 0x%08x at ext partition %u\n", driver->name, 
                     disk->device->io_address, (uint32_t)i);
                 return fs;
             }
@@ -121,7 +122,7 @@ fs_t* filesystems_try_all(gbd_t* disk) {
         for(filesystems_t* driver = s_filesystems; driver->name != nullptr; driver++) {
             fs = driver->init(disk, 0);
             if(fs) {
-                GlobalRenderer->Printf("VFS: %s initialized on disk at 0x%08x\n", driver->name, 
+                uart_printf("VFS: %s initialized on disk at 0x%08x\r\n", driver->name, 
                     disk->device->io_address);
                 return fs;
             }

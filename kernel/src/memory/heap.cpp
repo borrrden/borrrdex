@@ -1,6 +1,7 @@
 #include "heap.h"
 #include "KernelUtil.h"
 #include "paging/PageTableManager.h"
+#include "string.h"
 
 static void* s_heap_start;
 static void* s_heap_end;
@@ -95,6 +96,12 @@ void heap_expand(size_t length) {
     newSegment->next = nullptr;
     newSegment->length = (length + 0xfff) & ~0xfff;
     heap_combine_backward(newSegment);
+}
+
+void* kcalloc(size_t count, size_t itemsize) {
+    void* retVal = kmalloc(count * itemsize);
+    memset(retVal, 0, count * itemsize);
+    return retVal;
 }
 
 void* kmalloc(size_t size) {

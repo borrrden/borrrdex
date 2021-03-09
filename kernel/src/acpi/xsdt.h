@@ -20,7 +20,7 @@ class XSDT {
 public:
 	static constexpr const char* signature = "XSDT";
 
-	XSDT(void* data)
+	XSDT(const void* data)
 		:_data((xsdt_t *)data)
 	{}
 

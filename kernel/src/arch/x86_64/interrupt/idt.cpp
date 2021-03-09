@@ -5,6 +5,14 @@
 static idt_desc_t s_idt_descriptors[IDT_MAX_INTERRUPTS];
 static idt_t s_table;
 
+typedef struct {
+    uint16_t limit;
+    uint32_t base;
+} idt_32_t;
+
+
+static idt_32_t s_table_32;
+
 extern "C" void isr_handler0();
 extern "C" void isr_handler1();
 extern "C" void isr_handler2();
@@ -56,7 +64,14 @@ void idt_init() {
     s_table.limit = (uint16_t)(sizeof(idt_desc_t) * IDT_MAX_INTERRUPTS) - 1;
     s_table.base = (uint64_t)&s_idt_descriptors;
 
+    s_table.limit = (uint16_t)(sizeof(idt_desc_t) * IDT_MAX_INTERRUPTS) - 1;
+    s_table.base = (uint32_t)(uint64_t)&s_idt_descriptors;
+
     asm volatile("lidt (%%rax)" : : "a"((uint64_t)&s_table));
+}
+
+const void* idt_address() {
+    return &s_table_32;
 }
 
 void idt_install_gate(uint32_t index, uint16_t flags, uint16_t selector, irq_handler irq) {
