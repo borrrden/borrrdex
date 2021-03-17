@@ -7,7 +7,11 @@
 #define SYSCALL_READ    0x101
 #define SYSCALL_WRITE   0x102
 
+/* PROCESS */
 #define SYSCALL_EXIT    0x201
+
+/* MEMORY */
+#define SYSCALL_SBRK    0x301
 
 #define STDIN_HANDLE    0x0
 #define STDOUT_HANDLE   0x1

@@ -5,6 +5,7 @@
 #endif
 
 #include "common.h"
+#include <cstddef>
 #include <cstdint>
 
 namespace madt {
@@ -26,6 +27,71 @@ namespace madt {
     constexpr uint8_t TYPE_GIC_REDISTRIBUTOR        = 0xE;
     constexpr uint8_t TYPE_GIC_INT_TRANSLATION      = 0xF;
     constexpr uint8_t TYPE_MULTIPROCESSOR_WAKEUP    = 0x10;
+}
+
+namespace lapic {
+    // LAPIC Registers Intel SDM Volume 3 Table 10-1
+    constexpr uint16_t REG_OFFSET_ID                        = 0x0030;
+    constexpr uint16_t REG_OFFSET_VERSION                   = 0x0040;
+    constexpr uint16_t REG_OFFSET_TASK_PRIORITY             = 0x0080;
+    constexpr uint16_t REG_OFFSET_ARBITRATION_PRIORITY      = 0x0090;
+    constexpr uint16_t REG_OFFSET_PROCESSOR_PRIORITY        = 0x00A0;
+    constexpr uint16_t REG_OFFSET_EOI                       = 0x00B0;
+    constexpr uint16_t REG_OFFSET_REMOTE_READ               = 0x00C0;
+    constexpr uint16_t REG_OFFSET_LOGICAL_DESTINATION       = 0x00D0;
+    constexpr uint16_t REG_OFFSET_DESTINATION_FORMAT        = 0x00E0;
+    constexpr uint16_t REG_OFFSET_SPURIOUS_INT_VECTOR       = 0x00F0;
+    constexpr uint16_t REG_OFFSET_IN_SERVICE                = 0x0100;
+    constexpr uint16_t REG_OFFSET_TRIGGER_MODE              = 0x0180;
+    constexpr uint16_t REG_OFFSET_INTERRUPT_REQUEST         = 0x0200;
+    constexpr uint16_t REG_OFFSET_ERROR_STATUS              = 0x0280;
+    constexpr uint16_t REG_OFFSET_CMCI                      = 0x02F0;
+    constexpr uint16_t REG_OFFSET_INTERRUPT_COMMAND         = 0x0300;
+    constexpr uint16_t REG_OFFSET_LVT_TIMER                 = 0x0320;
+    constexpr uint16_t REG_OFFSET_LVT_THERMAL_SENSOR        = 0x0330;
+    constexpr uint16_t REG_OFFSET_LVT_PERF_MONITOR          = 0x0340;
+    constexpr uint16_t REG_OFFSET_LVT_LINT0                 = 0x0350;
+    constexpr uint16_t REG_OFFSET_LVT_LINT1                 = 0x0360;
+    constexpr uint16_t REG_OFFSET_LVT_ERROR                 = 0x0370;
+    constexpr uint16_t REG_OFFSET_INITIAL_COUNT             = 0x0380;
+    constexpr uint16_t REG_OFFSET_CURRENT_COUNT             = 0x0390;
+    constexpr uint16_t REG_OFFSET_DIVIDE_CONFIG             = 0x03E0;
+}
+
+namespace ioapic {
+    // I/O APIC registers and register data (Intel 82093AA data sheet p. 9)
+    constexpr uint8_t IOREGSEL_OFFSET                   = 0x00;
+    constexpr uint8_t IOWIN_OFFSET                      = 0x10;
+
+    constexpr uint8_t REG_OFFSET_IOAPICID               = 0x00;
+    constexpr uint8_t REG_OFFSET_IOAPICVER              = 0x01;
+    constexpr uint8_t REG_OFFSET_IOAPICARB              = 0x02;
+    constexpr uint8_t REG_OFFSET_IOREBTBL_BASE          = 0x10;
+
+    constexpr uint8_t IOREGSEL_REG_ADDR_MASK            = 0xff;
+
+    constexpr uint8_t IOAPICID_ID_OFFSET                = 24;
+    constexpr uint8_t IOAPICID_ID_MASK                  = 0xf;
+
+    constexpr uint8_t IOAPICVER_MAX_REDIR_OFFSET        = 16;
+    constexpr uint8_t IOAPICVER_MAX_REDIR_MASK          = 0xff;
+    constexpr uint8_t IOAPICVER_VERSION_MASK            = 0xff;
+
+    constexpr uint8_t IOAPICARB_ID_OFFSET               = 24;
+    constexpr uint8_t IOAPICARB_ID_MASK                 = 0xf;
+
+    constexpr uint8_t  IOREDTBL_DEST_FIELD_OFFSET       = 56;
+    constexpr uint8_t  IOREDTBL_DEST_FIELD_LOG_MASK     = 0xff;
+    constexpr uint8_t  IOREDTBL_DEST_FIELD_PHYS_MASK    = 0xf;
+    constexpr uint32_t IOREDTBL_INT_MASK_FLAG           = 1 << 16;
+    constexpr uint16_t IOREDTBL_TRIG_MODE_FLAG          = 1 << 15;
+    constexpr uint16_t IOREDTBL_REMOTE_IRR_FLAG         = 1 << 14;
+    constexpr uint16_t IOREDTBL_INTPOL_FLAG             = 1 << 13;
+    constexpr uint16_t IOREDTBL_DELIVER_STAT_FLAG       = 1 << 12;
+    constexpr uint16_t IOREDTBL_DESTMOD_FLAG            = 1 << 11;
+    constexpr uint8_t  IOREDTBL_DELIVER_MODE_OFFSET     = 8;
+    constexpr uint8_t  IOREDTBL_DELIVER_MODE_MASK       = 0x7;
+    constexpr uint16_t IOREDTBL_INTVEC_MASK             = 0xff;
 }
 
 // The header for each entry in the MADT (see below) as described
@@ -227,3 +293,104 @@ public:
 private:
     volatile uint8_t* _memoryAddress;
 };
+
+enum IOAPICTriggerMode : uint8_t {
+    Edge,
+    Level
+};
+
+enum IOAPICPolarity : uint8_t {
+    ActiveHigh,
+    ActiveLow
+};
+
+enum IOAPICDestinationMode : uint8_t {
+    Physical,
+    Logical
+};
+
+enum IOAPICDeliveryMode : uint8_t {
+    Fixed,
+    LowestPriority,
+    SMI,
+    NMI = 0b100,
+    INIT,
+    ExtINT = 0b111
+};
+
+class IOAPICRedirectionEntry {
+public:
+    IOAPICRedirectionEntry()
+    { 
+
+    }
+
+    IOAPICRedirectionEntry(uint64_t existing)
+        :_val(existing)
+    {
+        
+    }
+
+    uint8_t destination_field() const;
+    IOAPICRedirectionEntry& set_destination_field(uint8_t df);
+
+    bool interrupt_masked() const;
+    IOAPICRedirectionEntry& set_interrupt_masked(bool masked);
+
+    IOAPICTriggerMode trigger_mode() const;
+    IOAPICRedirectionEntry& set_trigger_mode(IOAPICTriggerMode mode);
+
+    bool remote_irr() const;
+
+    IOAPICPolarity interrupt_pin_polarity() const;
+    IOAPICRedirectionEntry& set_interrupt_pin_polarity(IOAPICPolarity polarity);
+
+    bool is_delivery_pending() const;
+
+    IOAPICDestinationMode destination_mode() const;
+    IOAPICRedirectionEntry& set_destination_mode(IOAPICDestinationMode mode);
+
+    IOAPICDeliveryMode delivery_mode() const;
+    IOAPICRedirectionEntry& set_delivery_mode(IOAPICDeliveryMode mode);
+
+    uint8_t interrupt_vector() const;
+    IOAPICRedirectionEntry& set_interrupt_vector(uint8_t vector);
+
+    explicit operator uint64_t() const {
+        return _val;
+    }
+private:
+    uint64_t _val {0};
+};
+
+class IOAPIC {
+public:
+    IOAPIC(void* memoryAddress)
+        :_memoryAddress((volatile uint8_t *)memoryAddress)
+    {
+
+    }
+
+    uint8_t selected_register() const;
+    void select_register(uint8_t reg);
+
+    uint32_t read_current() const;
+    void write_current(uint32_t val);
+
+    uint8_t ioapic_id();
+    void set_ioapid_id(uint8_t id);
+
+    uint8_t max_redirection_entry();
+    uint8_t apic_version();
+
+    uint8_t ioapic_arbitration_id();
+    void set_ioapic_arbitration_id(uint8_t id);
+
+    IOAPICRedirectionEntry redirection_entry(size_t index);
+    void set_redirection_entry(const IOAPICRedirectionEntry& entry, size_t index);
+
+private:
+    volatile uint8_t* _memoryAddress;
+};
+
+void apic_init(madt_t* madt);

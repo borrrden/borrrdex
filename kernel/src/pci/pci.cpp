@@ -4,7 +4,9 @@
 #include "KernelUtil.h"
 #include "acpi/xsdt.h"
 #include "acpi/mcfg.h"
+#include "acpi/rsdt.h"
 #include "drivers/modules.h"
+#include "Panic.h"
 
 #include <cstddef>
 
@@ -39,6 +41,8 @@ static void pci_init_bus(void* base) {
         KernelPageTableManager()->MapMemory((void *)((uint64_t)base + i * 0x1000), (void *)((uint64_t)base + i * 0x1000), false);
     }
 
+    pci_print_bus(base, 0);
+
     uint64_t baseAddr = (uint64_t)base;
     for(int i = 0; i < 32; i++, baseAddr += 0x8000) {
         pci_header_t* h = (pci_header_t *)baseAddr;
@@ -72,8 +76,22 @@ static int pci_init() {
         return -1;
     }
 
-    XSDT xsdtObj((void *)((rsdp_t *)rsdpAddr)->xdst_address);
-    void* mcfg = xsdtObj.get(MCFG::signature);
+    RSDP rsdpObj(rsdpAddr);
+    XSDT xsdtObj((void *)rsdpObj.data()->xdst_address);
+    RSDT rsdtObj((void *)(uint64_t)rsdpObj.data()->rsdt_address);
+
+    void* mcfg;
+    if(xsdtObj.is_valid()) {
+        KernelPageTableManager()->MapMemory((void *)xsdtObj.data(), (void *)xsdtObj.data(), 1);
+        mcfg = xsdtObj.get(MCFG::signature);
+        KernelPageTableManager()->MapMemory(mcfg, mcfg, 1);
+    } else {
+        KernelPageTableManager()->MapMemory((void *)rsdtObj.data(), (void *)rsdtObj.data(), 1);
+        KERNEL_ASSERT(rsdtObj.is_valid());
+        mcfg = (void *)(uint64_t)rsdtObj.get(MCFG::signature);
+        KernelPageTableManager()->MapMemory(mcfg, mcfg, 1);
+    }
+
     MCFG mcfgObj(mcfg);
     for(int i = 0; i < mcfgObj.count(); i++) {
         mcfg_config_entry_t* entry = mcfgObj.get(i);

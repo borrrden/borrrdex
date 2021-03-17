@@ -1,5 +1,10 @@
 #include "apic.h"
 #include "string.h"
+#include "KernelUtil.h"
+#include "arch/x86_64/pic.h"
+#include <type_traits>
+
+using namespace std;
 
 size_t MADT::count() const {
     uint8_t* start = _data->entries;
@@ -35,35 +40,6 @@ int_controller_header_t* MADT::get(size_t index) const {
 
 bool MADT::is_valid() const {
     return _data && strncmp(MADT::signature, _data->h.signature, 4) == 0;
-}
-
-namespace lapic {
-    // LAPIC Registers Intel SDM Volume 3 Table 10-1
-    constexpr uint16_t REG_OFFSET_ID                        = 0x0030;
-    constexpr uint16_t REG_OFFSET_VERSION                   = 0x0040;
-    constexpr uint16_t REG_OFFSET_TASK_PRIORITY             = 0x0080;
-    constexpr uint16_t REG_OFFSET_ARBITRATION_PRIORITY      = 0x0090;
-    constexpr uint16_t REG_OFFSET_PROCESSOR_PRIORITY        = 0x00A0;
-    constexpr uint16_t REG_OFFSET_EOI                       = 0x00B0;
-    constexpr uint16_t REG_OFFSET_REMOTE_READ               = 0x00C0;
-    constexpr uint16_t REG_OFFSET_LOGICAL_DESTINATION       = 0x00D0;
-    constexpr uint16_t REG_OFFSET_DESTINATION_FORMAT        = 0x00E0;
-    constexpr uint16_t REG_OFFSET_SPURIOUS_INT_VECTOR       = 0x00F0;
-    constexpr uint16_t REG_OFFSET_IN_SERVICE                = 0x0100;
-    constexpr uint16_t REG_OFFSET_TRIGGER_MODE              = 0x0180;
-    constexpr uint16_t REG_OFFSET_INTERRUPT_REQUEST         = 0x0200;
-    constexpr uint16_t REG_OFFSET_ERROR_STATUS              = 0x0280;
-    constexpr uint16_t REG_OFFSET_CMCI                      = 0x02F0;
-    constexpr uint16_t REG_OFFSET_INTERRUPT_COMMAND         = 0x0300;
-    constexpr uint16_t REG_OFFSET_LVT_TIMER                 = 0x0320;
-    constexpr uint16_t REG_OFFSET_LVT_THERMAL_SENSOR        = 0x0330;
-    constexpr uint16_t REG_OFFSET_LVT_PERF_MONITOR          = 0x0340;
-    constexpr uint16_t REG_OFFSET_LVT_LINT0                 = 0x0350;
-    constexpr uint16_t REG_OFFSET_LVT_LINT1                 = 0x0360;
-    constexpr uint16_t REG_OFFSET_LVT_ERROR                 = 0x0370;
-    constexpr uint16_t REG_OFFSET_INITIAL_COUNT             = 0x0380;
-    constexpr uint16_t REG_OFFSET_CURRENT_COUNT             = 0x0390;
-    constexpr uint16_t REG_OFFSET_DIVIDE_CONFIG             = 0x03E0;
 }
 
 LAPIC::LAPIC(void* memoryAddress)
@@ -217,4 +193,275 @@ uint32_t LAPIC::divide_config() const {
 
 void LAPIC::set_divide_config(uint32_t val) {
     *((volatile uint32_t *)(_memoryAddress + lapic::REG_OFFSET_DIVIDE_CONFIG)) = val;
+}
+
+template<typename T, typename = typename enable_if<is_integral<T>::value, T>::type>
+static void replace_bits(T* val, T newVal, T offset, T mask) {
+    T tmp = *val;
+    tmp &= ~(mask << offset);
+    tmp |= (newVal << offset);
+    *val = tmp;
+}
+
+template<typename T, typename = typename enable_if<is_integral<T>::value, T>::type>
+static void replace_bits(volatile T* val, T newVal, T offset, T mask) {
+    T tmp = *val;
+    tmp &= ~(mask << offset);
+    tmp |= (newVal << offset);
+    *val = tmp;
+}
+
+uint8_t IOAPICRedirectionEntry::destination_field() const {
+    uint64_t tmp = (_val >> ioapic::IOREDTBL_DEST_FIELD_OFFSET);
+    return destination_mode() == Physical
+        ? tmp & ioapic::IOREDTBL_DEST_FIELD_PHYS_MASK
+        : tmp & ioapic::IOREDTBL_DEST_FIELD_LOG_MASK;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_destination_field(uint8_t val) {
+    uint8_t mask = destination_mode() == Physical
+        ? ioapic::IOREDTBL_DEST_FIELD_PHYS_MASK
+        : ioapic::IOREDTBL_DEST_FIELD_LOG_MASK;
+
+    replace_bits<uint64_t>(&_val, val, ioapic::IOREDTBL_DEST_FIELD_OFFSET, mask);
+    return *this;
+}
+
+bool IOAPICRedirectionEntry::interrupt_masked() const {
+    return _val & ioapic::IOREDTBL_INT_MASK_FLAG;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_interrupt_masked(bool masked) {
+    if(masked) {
+        _val |= ioapic::IOREDTBL_INT_MASK_FLAG;
+    } else {
+        _val &= ~ioapic::IOREDTBL_INT_MASK_FLAG;
+    }
+
+    return *this;
+}
+
+IOAPICTriggerMode IOAPICRedirectionEntry::trigger_mode() const {
+    return _val & ioapic::IOREDTBL_TRIG_MODE_FLAG ? Level : Edge;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_trigger_mode(IOAPICTriggerMode mode) {
+    if(mode == Level) {
+        _val |= ioapic::IOREDTBL_TRIG_MODE_FLAG;
+    } else {
+        _val &= ~ioapic::IOREDTBL_TRIG_MODE_FLAG;
+    }
+
+    return *this;
+}
+
+bool IOAPICRedirectionEntry::remote_irr() const {
+    return _val & ioapic::IOREDTBL_REMOTE_IRR_FLAG;
+}
+
+IOAPICPolarity IOAPICRedirectionEntry::interrupt_pin_polarity() const {
+    return _val & ioapic::IOREDTBL_INTPOL_FLAG ? ActiveLow : ActiveHigh;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_interrupt_pin_polarity(IOAPICPolarity polarity) {
+    if(polarity == ActiveLow) {
+        _val |= ioapic::IOREDTBL_INTPOL_FLAG;
+    } else {
+        _val &= ~ioapic::IOREDTBL_INTPOL_FLAG;
+    }
+
+    return *this;
+}
+
+bool IOAPICRedirectionEntry::is_delivery_pending() const {
+    return _val & ioapic::IOREDTBL_DELIVER_STAT_FLAG;
+}
+
+IOAPICDestinationMode IOAPICRedirectionEntry::destination_mode() const {
+    return _val & ioapic::IOREDTBL_DESTMOD_FLAG ? Logical : Physical;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_destination_mode(IOAPICDestinationMode mode) {
+    if(mode == Logical) {
+        _val |= ioapic::IOREDTBL_DESTMOD_FLAG;
+    } else {
+        _val &= ~ioapic::IOREDTBL_DESTMOD_FLAG;
+    }
+
+    return *this;
+}
+
+IOAPICDeliveryMode IOAPICRedirectionEntry::delivery_mode() const {
+    uint8_t raw = (_val >> ioapic::IOREDTBL_DELIVER_MODE_OFFSET) & ioapic::IOREDTBL_DELIVER_MODE_MASK;
+    return (IOAPICDeliveryMode)raw;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_delivery_mode(IOAPICDeliveryMode mode) {
+    uint8_t raw = (uint8_t)mode;
+    replace_bits<uint64_t>(&_val, raw, ioapic::IOREDTBL_DELIVER_MODE_OFFSET, ioapic::IOREDTBL_DELIVER_MODE_MASK);
+    return *this;
+}
+
+uint8_t IOAPICRedirectionEntry::interrupt_vector() const {
+    return _val & ioapic::IOREDTBL_INTVEC_MASK;
+}
+
+IOAPICRedirectionEntry& IOAPICRedirectionEntry::set_interrupt_vector(uint8_t vector) {
+    replace_bits<uint64_t>(&_val, vector, 0, ioapic::IOREDTBL_INTVEC_MASK);
+    return *this;
+} 
+
+uint8_t IOAPIC::selected_register() const {
+    uint32_t raw = *((volatile uint32_t *)(_memoryAddress + ioapic::IOREGSEL_OFFSET));
+    return raw & ioapic::IOREGSEL_REG_ADDR_MASK;
+}
+
+void IOAPIC::select_register(uint8_t reg) {
+    *((volatile uint32_t *)(_memoryAddress + ioapic::IOREGSEL_OFFSET)) = (uint32_t)reg;
+}
+
+uint32_t IOAPIC::read_current() const {
+    return *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+}
+
+void IOAPIC::write_current(uint32_t val) {
+    *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET)) = val;
+}
+
+uint8_t IOAPIC::ioapic_id() {
+    select_register(ioapic::REG_OFFSET_IOAPICID);
+    uint32_t raw = *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    return (raw >> ioapic::IOAPICID_ID_OFFSET) & ioapic::IOAPICID_ID_MASK;
+}
+
+void IOAPIC::set_ioapid_id(uint8_t id) {
+    select_register(ioapic::REG_OFFSET_IOAPICID);
+    volatile uint32_t* addr = ((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    replace_bits<uint32_t>(addr, id, ioapic::IOAPICID_ID_OFFSET, ioapic::IOAPICID_ID_MASK);
+}
+
+uint8_t IOAPIC::max_redirection_entry() {
+    select_register(ioapic::REG_OFFSET_IOAPICVER);
+    uint32_t raw = *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    return (raw >> ioapic::IOAPICVER_MAX_REDIR_OFFSET) & ioapic::IOAPICVER_MAX_REDIR_MASK;
+}
+
+uint8_t IOAPIC::apic_version() {
+    select_register(ioapic::REG_OFFSET_IOAPICVER);
+    uint32_t raw = *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    return raw & ioapic::IOAPICVER_VERSION_MASK;
+}
+
+uint8_t IOAPIC::ioapic_arbitration_id() {
+    select_register(ioapic::REG_OFFSET_IOAPICARB);
+    uint32_t raw = *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    return (raw >> ioapic::IOAPICARB_ID_OFFSET) & ioapic::IOAPICARB_ID_MASK;
+}
+
+void IOAPIC::set_ioapic_arbitration_id(uint8_t id) {
+    select_register(ioapic::REG_OFFSET_IOAPICID);
+    volatile uint32_t* addr = ((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    replace_bits<uint32_t>(addr, id, ioapic::IOAPICARB_ID_OFFSET, ioapic::IOAPICARB_ID_MASK);
+}
+
+IOAPICRedirectionEntry IOAPIC::redirection_entry(size_t index) {
+    select_register(ioapic::REG_OFFSET_IOREBTBL_BASE + 2 * index + 1);
+    uint64_t tmp = *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    tmp <<= 32;
+    select_register(ioapic::REG_OFFSET_IOREBTBL_BASE + 2 * index);
+    tmp |= *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET));
+    return IOAPICRedirectionEntry(tmp);
+}
+
+void IOAPIC::set_redirection_entry(const IOAPICRedirectionEntry& entry, size_t index) {
+    uint64_t raw = (uint64_t)entry;
+    if(!entry.interrupt_masked()) {
+        // Since this requires two writes, it is easy to imagine a situation in which
+        // a half written redirection entry gets used.  So for now, disable the entry.
+        raw |= ioapic::IOREDTBL_INT_MASK_FLAG;
+    }
+
+    select_register(ioapic::REG_OFFSET_IOREBTBL_BASE + 2 * index);
+    *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET)) = raw & 0xffffffff;
+
+    select_register(ioapic::REG_OFFSET_IOREBTBL_BASE + 2 * index + 1);
+    *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET)) = raw >> 32;
+
+    if(!entry.interrupt_masked()) {
+        // Now that the upper half is written, rewrite the lower half
+        // with an unmasked value
+        raw &= ~ioapic::IOREDTBL_INT_MASK_FLAG;
+        select_register(ioapic::REG_OFFSET_IOREBTBL_BASE + 2 * index);
+        *((volatile uint32_t *)(_memoryAddress + ioapic::IOWIN_OFFSET)) = raw & 0xffffffff;
+    }
+}
+
+void apic_init(madt_t* m) {
+    MADT madt(m);
+    uint64_t lapic = madt.data()->lic_address;
+    uint64_t ioapic = 0;
+    int count = 0;
+    
+    int_source_override_t* interrupt_overrides[16] = { 
+        nullptr, nullptr, nullptr, nullptr, 
+        nullptr, nullptr, nullptr, nullptr, 
+        nullptr, nullptr, nullptr, nullptr, 
+        nullptr, nullptr, nullptr, nullptr
+    };
+
+    for(int i = 0; i < madt.count(); i++) {
+        auto* entry = madt.get(i);
+        if(entry->type == madt::TYPE_LOCAL_APIC_ADDR_OVERRIDE) {
+            lapic = ((local_apic_addr_ovr_t *)entry)->local_apic_addr;
+        } else if(entry->type == madt::TYPE_INTERRUPT_SRC_OVERRIDE) {
+            auto* source = (int_source_override_t *)entry;
+            interrupt_overrides[source->source] = source;
+        } else if(entry->type == madt::TYPE_IO_APIC) {
+            ioapic = ((io_apic_t *)entry)->apic_address;
+        }
+    }
+
+    uint64_t lapicPage = lapic & ~0xfffULL;
+    KernelPageTableManager()->MapMemory((void *)lapicPage, (void *)lapicPage, false);
+    uint64_t ioapicPage = ioapic & ~0xfffULL;
+    KernelPageTableManager()->MapMemory((void *)ioapicPage, (void *)ioapicPage, false);
+    pic_override((void *)lapic);
+    
+    uint8_t vectors[16] = {
+        0xEC, 0xE4, 0, 0x94,
+        0x8C, 0x84, 0x7C, 0x74,
+        0xD4, 0xCC, 0xC4, 0xBC,
+        0xB4, 0xAC, 0xA4, 0x9C
+    };
+
+    uint16_t bmp;
+    Bitmap bitmap(2, (void *)&bmp);
+    bitmap.Clear();
+    
+    IOAPIC ioapicObj((void *)ioapic);
+    for(int i = 0; i < 16; i++) {
+        if(bitmap[i]) {
+            continue;
+        }
+
+        IOAPICPolarity polarity = ActiveHigh;
+        IOAPICTriggerMode trigger = Edge;
+        uint8_t index = i;
+        const auto* ovrd = interrupt_overrides[i];
+        if(ovrd) {
+            index = ovrd->global_interrupt;
+            polarity = (ovrd->flags & 0x3) == 0x3 ? ActiveLow : ActiveHigh;
+            trigger = (ovrd->flags & 0xC) == 0xC ? Level : Edge;
+            bitmap.Set(ovrd->global_interrupt, true);
+        }
+
+        IOAPICRedirectionEntry e = ioapicObj.redirection_entry(index);
+        e.set_interrupt_masked(false)
+            .set_interrupt_vector(vectors[i])
+            .set_delivery_mode(Fixed)
+            .set_destination_mode(Physical)
+            .set_interrupt_pin_polarity(polarity)
+            .set_trigger_mode(trigger);
+        ioapicObj.set_redirection_entry(e, index);
+    }
 }

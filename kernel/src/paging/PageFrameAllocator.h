@@ -2,12 +2,14 @@
 
 #include "../uefi/EfiMemory.h"
 #include "../Bitmap.h"
+#include "../../bios/multiboot.h"
 #include "memory/Memory.h"
 #include <stdint.h>
 
 class PageFrameAllocator {
 public:
     void ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mMapSize, size_t mMapDescSize);
+    void ReadMultibootMap(multiboot_info_t* mb_info);
     void FreePage(void* address);
     void FreePages(void* address, uint64_t pageCount);
     void LockPage(void* address);

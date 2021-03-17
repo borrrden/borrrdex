@@ -44,17 +44,6 @@ constexpr uint8_t PIT_CW_MASK_COUNTERINV    = 0x90;
 constexpr uint32_t PIT_BASE_FREQUENCY   = 1193181;  // True oscillation rate of the timer (Hz)
 constexpr uint16_t PIT_FREQUENCY        = 1000;     // Desired interrupts per second
 
-typedef void(*TimerCallback)();
-typedef struct timer_chain timer_chain_t;
-
-struct timer_chain {
-    TimerCallback cb;
-    timer_chain_t* next;
-};
-
-void register_timer_cb(timer_chain_t* chainEntry);
-void unregister_timer_cb(timer_chain_t* chainEntry);
-
 void pit_init();
 uint32_t get_clock();
 void pit_sleepms(uint64_t ms);

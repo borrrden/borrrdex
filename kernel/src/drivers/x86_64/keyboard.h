@@ -7,3 +7,4 @@
 #include <cstdint>
 
 void keyboard_init();
+char keyboard_getkey();

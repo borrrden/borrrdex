@@ -28,6 +28,8 @@ void heap_combine_forward(heap_segment_hdr_t* hdr) {
         hdr->next->next->last = hdr;
     }
 
+    hdr->next = hdr->next->next;
+
     hdr->length = hdr->length + hdr->next->length + sizeof(heap_segment_hdr_t);
 }
 
@@ -132,6 +134,35 @@ void* kmalloc(size_t size) {
 
     heap_expand(size);
     return kmalloc(size);
+}
+
+void* krealloc(void* address, size_t size) {
+    heap_segment_hdr_t* segment = (heap_segment_hdr_t *)address - 1;
+    size_t originalSize = segment->length;
+    if(segment->length + segment->next->length + sizeof(heap_segment_hdr_t) >= size) {
+        heap_combine_forward(segment);
+
+        // Best case, combining with the next free block gave us enough
+        // memory at the same address, no copy needed
+        if(segment->length > size) {
+            heap_segment_split(segment, size);
+        }
+
+        segment->free = false;
+        return segment + 1;
+    }
+    
+    void* newAddr = kmalloc(size);
+    if(!newAddr) {
+        // Can't do it, don't touch the old block
+        return nullptr;
+    }
+
+    heap_combine_backward(segment);
+    segment->free = true;
+
+    memcpy(newAddr, (void *)(segment + 1), originalSize);
+    return newAddr;
 }
 
 void kfree(void* address) {

@@ -9,7 +9,7 @@ __spinlock_acquire:
     mov rbx, rdi
 
 spinlock_loop:
-    xchg rax, [rbx]
+    xchg eax, [ebx]
     test rax, rax
     jnz spinlock_loop
 

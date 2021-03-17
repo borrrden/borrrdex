@@ -2,6 +2,24 @@
 #include "../graphics/BasicRenderer.h"
 #include "stalloc.h"
 #include "KernelUtil.h"
+#include "string.h"
+#include "../../../bios/multiboot.h"
+
+enum memmap_types_t
+{
+    MEMTYPE_FREE = 1,
+    MEMTYPE_RESERVED,
+    MEMTYPE_RECLAIM,
+    MEMTYPE_NVRAM
+};
+
+typedef struct memory_region
+{
+    uint32_t size;
+    uint64_t base_address;
+    uint64_t length;
+    uint32_t type;
+} __attribute__((packed)) mem_region_t;
 
 PageFrameAllocator sAllocator;
 PageFrameAllocator* PageFrameAllocator::SharedAllocator() {
@@ -37,7 +55,35 @@ void PageFrameAllocator::ReadEFIMemoryMap(EFI_MEMORY_DESCRIPTOR* mMap, size_t mM
     uint64_t ke = (uint64_t)&_KernelEnd & ~0xfff;
     uint64_t se = (last_address + 0xfff) & ~0xfff;
     ReservePages((void *)ke, (se - ke) / 0x1000);
+}
 
+void PageFrameAllocator::ReadMultibootMap(multiboot_info_t* mb_info) {
+    uint64_t* mem_ptr = (uint64_t *)(uint64_t)mb_info->memory_map_addr;
+    uint64_t memory_size = mb_info->memory_high + mb_info->memory_low;
+    uint64_t total_blocks = (memory_size * 1024) / 0x1000;
+    uint64_t bitmap_size = total_blocks / 8;
+    void* mem_bitmap = stalloc(bitmap_size);
+    _pageBitmap = Bitmap(bitmap_size, (uint8_t *)mem_bitmap);
+    _pageBitmap.Clear();
+    uint64_t last_address = (uint64_t)stalloc(1);
+    stalloc_disable();
+
+
+    ReservePages(0, memory_size / 4096 + 1);
+    for(uint64_t itr = (uint64_t)mem_ptr; itr < ((uint64_t)mem_ptr + mb_info->memory_map_length); itr += sizeof(mem_region_t)) {
+        mem_region_t* mem_region = (mem_region_t *)itr;
+        if(mem_region->type == MEMTYPE_FREE) {
+            if(mem_region->length >= 0x1000) {
+                UnreservePages((void *)mem_region->base_address, mem_region->length / 0x1000);
+            }
+        }
+    }
+
+    ReservePages(0, 256);
+
+    uint64_t ks = (uint64_t)&_KernelStart & ~0xfff;
+    uint64_t se = (last_address + 0xfff) & ~0xfff;
+    ReservePages((void *)ks, (se - ks + 0xfff) / 0x1000);
 }
 
 void* PageFrameAllocator::RequestPage() {

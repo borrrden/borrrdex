@@ -1,7 +1,9 @@
 [bits 64]
 
 GLOBAL __pit_irq_handler
-extern pit_handle
+GLOBAL __enable_apic
+extern pit_counter
+extern pic_eoi
 
 __pit_irq_handler:
     cli
@@ -24,7 +26,12 @@ __pit_irq_handler:
     mov [rsp-0x80], rax
     sub rsp, 0x80
 
-    call pit_handle
+    xor rax, rax
+    mov eax, pit_counter
+    add [rax], dword 1
+
+    mov rdi, 0
+    call pic_eoi
 
     add rsp, 0x80
     mov r15, [rsp-0x8]
@@ -45,3 +52,16 @@ __pit_irq_handler:
 
     sti
     iretq
+
+__enable_apic:
+    push rbp
+    mov rbp, rsp
+
+    mov ecx, 0x1B
+    rdmsr
+    or eax, 0x800
+    wrmsr
+
+    mov rsp, rbp
+    pop rbp
+    ret

@@ -1,5 +1,10 @@
 #include "pic.h"
 #include "io/io.h"
+#include "acpi/apic.h"
+
+static void* lapicAddr = nullptr;
+
+extern "C" void __enable_apic();
 
 void pic_sendcommand(uint8_t pic, uint8_t command) {
     if(pic > 1) {
@@ -57,6 +62,16 @@ extern "C" void pic_init(uint8_t mask1, uint8_t mask2) {
     pic_eoi(8);
 }
 
+extern "C" void pic_override(void* lapic) {
+    port_write_8(PIC0_INT_MASK_REGISTER, 0xFF);
+    port_write_8(PIC1_INT_MASK_REGISTER, 0xFF);
+
+    port_write_8(CHIPSET_ADDRESS_REGISTER, IMCR_REGISTER_ADDRESS);
+    port_write_8(CHIPSET_DATA_REGISTER, IMCR_VIA_APIC);
+
+    lapicAddr = lapic;
+}
+
 extern "C" void pic_mask_interrupt(uint8_t irq) {
     uint16_t port;
     if(irq < 8) {
@@ -84,9 +99,14 @@ extern "C" void pic_unmask_interrupt(uint8_t irq) {
 }
 
 extern "C" void pic_eoi(uint8_t irq) {
-    if(irq >= 8) {
-        port_write_8(PIC1_COMMAND_REGISTER, 0x20);
-    }
+    if(lapicAddr) {
+        auto* eoiAddr = (volatile uint32_t *)((uint64_t)lapicAddr + lapic::REG_OFFSET_EOI);
+        *eoiAddr = 0;
+    } else {
+        if(irq >= 8) {
+            port_write_8(PIC1_COMMAND_REGISTER, 0x20);
+        }
 
-    port_write_8(PIC0_COMMAND_REGISTER, 0x20);
+        port_write_8(PIC0_COMMAND_REGISTER, 0x20);
+    }
 }

@@ -6,20 +6,19 @@
 #include <cstddef>
 
 volatile uint32_t pit_counter = 0;
-static timer_chain_t* s_root_chain;
 
 extern "C" void __pit_irq_handler();
 
-extern "C" void pit_handle() {
-    pit_counter++;
-    timer_chain_t* cur = s_root_chain;
-    while(cur) {
-        cur->cb();
-        cur = cur->next;
-    }
+// extern "C" void pit_handle() {
+//     pit_counter++;
+//     timer_chain_t* cur = s_root_chain;
+//     while(cur) {
+//         cur->cb();
+//         cur = cur->next;
+//     }
 
-    pic_eoi(PIC_IRQ_TIMER);
-}
+//     pic_eoi(PIC_IRQ_TIMER);
+// }
 
 void pit_senddata(uint8_t data, uint8_t counter) {
     uint8_t port;
@@ -60,6 +59,7 @@ void pit_start_counter(uint32_t frequency, uint8_t counter, uint8_t mode) {
 
 void pit_init() {
     interrupt_register(PIC_IRQ_TIMER, __pit_irq_handler);
+    interrupt_register(0xEC - 0x20, __pit_irq_handler);
     pit_start_counter(PIT_FREQUENCY, PIT_CW_MASK_COUNTER0, PIT_CW_MASK_RATEGEN);
 }
 
@@ -78,34 +78,5 @@ void __attribute__((noinline)) pit_sleepms(uint64_t ms) {
         }
 
         clocks = get_clock();
-    }
-}
-
-void register_timer_cb(timer_chain_t* entry) {
-    if(!s_root_chain) {
-        s_root_chain = entry;
-        return;
-    }
-
-    timer_chain_t* cur = s_root_chain;
-    while(cur->next) {
-        cur = cur->next;
-    }
-
-    cur->next = entry;
-}
-
-void unregister_timer_cb(timer_chain_t* entry) {
-    timer_chain_t* cur = s_root_chain;
-    timer_chain_t* prev = NULL;
-    while(cur->cb && cur->cb != entry->cb) {
-        prev = cur;
-        cur = cur->next;
-    }
-
-    if(prev) {
-        prev->next = cur->next;
-    } else {
-        s_root_chain = NULL;
     }
 }

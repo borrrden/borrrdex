@@ -47,7 +47,7 @@ void context_init(context_t* ctx, uint64_t entry, uint64_t endentry, uint64_t st
     *(rsp) = 0; // RAX
 
     ctx->stack = rsp;
-
+    
     ctx->pml4 = (uint64_t)KernelPageTableManager()->PML4Address();
     ctx->virt_memory = (uint64_t *)KernelPageTableManager()->PML4Address();
     ctx->flags = 0;

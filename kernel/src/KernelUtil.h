@@ -12,6 +12,7 @@
 #include "uefi/FrameBuffer.h"
 #include "uefi/EfiMemory.h"
 #include "acpi/rsdp.h"
+#include "../../bios/multiboot.h"
 
 #define MIN(arg1,arg2) ((arg1) > (arg2) ? (arg2) : (arg1))
 #define MAX(arg1,arg2) ((arg1) > (arg2) ? (arg1) : (arg2))
@@ -33,6 +34,7 @@ struct KernelInfo {
 };
 
 KernelInfo InitializeKernel(BootInfo* bootInfo);
+KernelInfo InitializeKernel(multiboot_info_t* bootInfo);
 PageTableManager* KernelPageTableManager();
 const void* SystemRSDPAddress();
 void InitializeNewPageTableManager(PageTableManager& ptm);

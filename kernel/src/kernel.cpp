@@ -17,12 +17,12 @@
 #include "stdatomic.h"
 #include "init/common.h"
 #include "thread.h"
-#include "drivers/polltty.h"
 #include "stalloc.h"
+#include "../../bios/multiboot.h"
+#include "drivers/polltty.h"
+#include "graphics/kwrite.h"
 
 #include <cstddef>
-
-extern "C" __attribute__((noreturn)) void __enter_ring3(uint64_t new_stack, uint64_t jump_addr, void* pageTable);
 
 struct KernelUpdateEntries {
     BasicRenderer *renderer;
@@ -40,6 +40,25 @@ void render(datetime_t* dt, void* context) {
 
     if((tickCount % updateEntries->clock->get_update_ticks()) == 0) {
         updateEntries->clock->tick(dt);
+    }
+}
+
+extern "C" void init(uint64_t magic, uint8_t* multiboot) {
+    multiboot_info_t* mb_info = (multiboot_info_t *)multiboot;
+    stalloc_init();
+    uart_init();
+
+    polltty_init();
+    kwrite("borrrdex - An operating system for learning operating systems\n");
+    kwrite("=============================================================\n");
+    kwrite("\n");
+    kwrite("borrrdex is heavily based on PonchoOS and KUDOS\n");
+    kwrite("\n");
+
+    InitializeKernel(mb_info);
+
+    while(true) {
+        asm volatile("hlt");
     }
 }
 
@@ -75,9 +94,5 @@ extern "C" void _start(BootInfo* bootInfo) {
     thread_run(startup_thread);
 
     thread_switch();
-    //process_start("[disk]/usertest", nullptr);
-    // userPages.WriteToCR3();
-    // __enter_ring3(0x8001000 - 0x10, hdr.e_entry, newPage);
-
-    
+    //while(true) asm("hlt");
 }

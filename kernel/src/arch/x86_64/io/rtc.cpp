@@ -49,6 +49,7 @@ unsigned char get_rtc_register(uint8_t reg) {
 
 void rtc_init() {
     interrupt_register(PIC_IRQ_CMOSTIMER, __rtc_irq_handler);
+    interrupt_register(0xD4 - 0x20, __rtc_irq_handler);
 }
 
 inline uint8_t decode_date_byte(uint8_t b) {

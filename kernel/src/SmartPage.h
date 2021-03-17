@@ -4,7 +4,6 @@
 #error C++ only
 #endif
 
-
 class SmartPage {
 public:
     SmartPage(int pageCount);

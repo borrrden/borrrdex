@@ -29,8 +29,10 @@ PageTableManager::PageTableManager(PageTable* PML4Address)
         MapMemory((void *)i, (void *)i, false);
     }
 
-    for(uint64_t i = 0; i < s_framebuffer->bufferSize; i += 0x1000) {
-        MapMemory((void *)((uint64_t)s_framebuffer->baseAddress + i), (void *)((uint64_t)s_framebuffer->baseAddress + i), false);
+    if(s_framebuffer) {
+        for(uint64_t i = 0; i < s_framebuffer->bufferSize; i += 0x1000) {
+            MapMemory((void *)((uint64_t)s_framebuffer->baseAddress + i), (void *)((uint64_t)s_framebuffer->baseAddress + i), false);
+        }
     }
 }
 

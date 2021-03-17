@@ -1,9 +1,6 @@
 #pragma once
 
 #include "__config.h"
-
-__BEGIN_DECLS
-
 #include "features.h"
 
 #ifdef __cplusplus
@@ -14,11 +11,18 @@ __BEGIN_DECLS
 
 #include "bits/alltypes.h"
 
+__BEGIN_DECLS
+
 int atoi(const char *);
 long atol(const char *);
 long long atoll(const char *);
 
-//_Noreturn void abort (void);
+void* calloc(size_t, size_t);
+
 _Noreturn void exit(int);
+
+void* malloc(size_t);
+
+void* realloc(void*, size_t);
 
 __END_DECLS

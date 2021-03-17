@@ -9,3 +9,7 @@ void Spinlock::acquire() {
 void Spinlock::release() {
     _handle = 0;
 }
+
+void Spinlock::reset() {
+    _handle = 0;
+}

@@ -2,11 +2,15 @@
 
 class Spinlock {
 public:
-    Spinlock() {}
+    Spinlock() {
+        reset();
+    }
 
     void acquire();
     void release();
+
+    void reset();
     
 private:
-    int _handle{0};
+    int _handle;
 };

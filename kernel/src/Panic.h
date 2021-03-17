@@ -1,5 +1,6 @@
 #pragma once
 
+
 void Panic(const char* panicMessage);
 __attribute__((noreturn)) void AssertionPanic(const char* file, int line, const char* message);
 

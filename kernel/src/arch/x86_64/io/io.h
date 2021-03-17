@@ -3,6 +3,13 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+// Interrupt Management Configuration Register (Intel MP 1.4 p .28)
+constexpr uint16_t CHIPSET_ADDRESS_REGISTER = 0x22;
+constexpr uint16_t CHIPSET_DATA_REGISTER    = 0x23;
+constexpr uint8_t  IMCR_REGISTER_ADDRESS    = 0x70;
+constexpr uint8_t  IMCR_8259_DIRECT         = 0x00;
+constexpr uint8_t  IMCR_VIA_APIC            = 0x01;
+
 // I/O
 void port_yield();
 

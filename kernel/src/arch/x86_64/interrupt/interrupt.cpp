@@ -12,12 +12,13 @@ extern "C" void __disable_irq();
 extern "C" uint64_t __getflags();
 extern "C" void yield_irq_handler();
 
+uint64_t init_stack = 0x90000;
+
 void interrupt_init() {
     gdt_init();
     tss_init();
     idt_init();
 
-    pic_init(0b11111111, 0b11111111);
     idt_install_gate(0x81, IDT_DESC_PRESENT | IDT_DESC_TRAP32 | IDT_DESC_RING3, GDT_SELECTOR_KERNEL_CODE,
         yield_irq_handler);
 }

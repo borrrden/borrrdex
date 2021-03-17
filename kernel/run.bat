@@ -14,9 +14,11 @@ qemu-system-x86_64 -drive file=%BUILDDIR%/%OSNAME%.img^
     -machine q35 ^
     -s -S^
     -monitor stdio^
-    -rtc base=localtime,clock=host
+    -rtc base=localtime,clock=host^
+    -usb^
+    -device pci-ohci,id=ohci
+    ::-device usb-kbd,bus=ohci.0
     ::-smp cores=2,sockets=1
-    ::-usb^
     ::-serial file:%BUILDDIR%/serial.log^
     ::-netdev user,id=en0 -nic user,model=e1000^
 ::pause

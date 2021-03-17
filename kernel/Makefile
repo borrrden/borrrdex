@@ -11,6 +11,7 @@ LD = ld
 override CFLAGS := -I ../libc/include -I src -I src/arch/x86_64 -ffreestanding -fshort-wchar -fno-builtin -mno-red-zone -fno-rtti -fno-exceptions -Wno-address-of-packed-member -g $(CFLAGS)
 ASMFLAGS = -g -F dwarf
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib
+DEPFLAGS = -MM -MD -MP
 
 SRCDIR := src
 OBJDIR := lib
@@ -25,12 +26,17 @@ OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
 OBJS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%_asm.o, $(ASMSRC))
 DIRS = $(wildcard $(SRCDIR)/*)
 
+-include $(OBJS:.o=.o.d)
+
 kernel:	$(OBJS) link
 
+.PHONY: grub
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	@ echo !== Compiling $^
+	@ echo !== Compiling $<
 	@ mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $^ -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $< -MT $@ $(DEPFLAGS) -MF $@.d
 
 $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
 	@ echo !== Assembling $^
@@ -67,6 +73,10 @@ buildimg:
 
 run:
 	qemu-system-x86_64 -drive file=$(BUILDDIR)/$(OSNAME).img -m 256M -cpu qemu64 -drive if=pflash,format=raw,unit=0,file="$(OVMFDIR)/OVMF_CODE-pure-efi.fd",readonly=on -drive if=pflash,format=raw,unit=1,file="$(OVMFDIR)/OVMF_VARS-pure-efi.fd" -net none
+
+grub:
+	cp $(BUILDDIR)/kernel.elf grub/iso/boot/
+	grub-mkrescue -o $(BUILDDIR)/borrrdex.iso grub/iso/
 
 clean:
 	rm -f $(BUILDDIR)/kernel.*

@@ -60,6 +60,7 @@ extern "C" {
 #endif
 
     void pic_init(uint8_t mask1, uint8_t mask2);
+    void pic_override(void* lapic);
     void pic_mask_interrupt(uint8_t irq);
     void pic_unmask_interrupt(uint8_t irq);
     void pic_eoi(uint8_t irq);

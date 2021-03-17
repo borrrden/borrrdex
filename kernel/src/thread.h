@@ -13,6 +13,7 @@ constexpr tid_t IDLE_THREAD_TID = 0;
 constexpr uint8_t THREAD_FLAG_USERMODE = 0x1;
 constexpr uint8_t THREAD_FLAG_ENTERUSER = 0x2;
 
+const uint32_t THREAD_VIRTUAL_HEAP_START = 0x90000000;
 
 typedef enum {
     THREAD_FREE,
