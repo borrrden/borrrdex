@@ -294,7 +294,7 @@ bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device
     // TD 0 (SETUP packet)
     td->link_ptr = Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
     td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
-    td->info = (0x7 << uhci::TD_MAX_LEN_OFFSET) | (uhci::TD_PACKET_SETUP + 1);
+    td->info = (0x7 << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_PACKET_SETUP;
     td->buf_ptr = (uint32_t)(uint64_t)(start + 3);
     td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
     td++;
@@ -303,14 +303,14 @@ bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device
     td->link_ptr = Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
     td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
     td->info = (0x7 << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_DATA_TOGGLE_FLAG | uhci::TD_PACKET_IN;
-    td->buf_ptr = (uint32_t)(uint64_t)(start + 3 + sizeof(usb_device_req_packet_t));
+    td->buf_ptr = (uint32_t)((uint64_t)(start + 3) + 0x10);
     td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
     td++;
 
     // TD 2 (OUT packet)
     td->link_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
-    td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
-    td->info = (0x7ff << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_PACKET_OUT | uhci::TD_IOC_FLAG;
+    td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET) | uhci::TD_IOC_FLAG;
+    td->info = (0x7ff << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_PACKET_OUT;
     td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
     td++;
     
@@ -324,7 +324,7 @@ bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device
     uint8_t td_stat;
     td = start;
     do {
-        frame_no = port_read_16(_port + uhci::REG_FRAME_NO_OFFSET) & 0x7ff;
+        frame_no = port_read_16(_port + uhci::REG_FRAME_NO_OFFSET) & 0x3ff;
         stat = port_read_16(_port + uhci::REG_STATUS_OFFSET);
         td_stat = (td->reply >> uhci::TD_STATUS_OFFSET) & uhci::TD_STATUS_MASK;
     } while((stat & 0x1) == 0);
