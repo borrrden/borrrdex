@@ -5,8 +5,10 @@
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/io/io.h"
 #include "paging/PageFrameAllocator.h"
+#include "SmartPage.h"
 #include "Panic.h"
 #include "string.h"
+#include "io/serial.h"
 #include <vector>
 
 #define Q_TO_UINT32(x) (uint32_t)(uint64_t)(x)
@@ -78,7 +80,7 @@ static void setup_controller(void* base) {
         stack_frame[i] = uhci::FRAME_PTR_TERMINATE_FLAG;
     }
 
-    port_write_32(base_port + uhci::FRAME_BASE_ADDRESS_OFFSET, (uint32_t)(uint64_t)uhci_stack);
+    port_write_32(base_port + uhci::REG_FRAME_LIST_ADDR_OFFSET, (uint32_t)(uint64_t)uhci_stack);
     port_write_8(base_port + uhci::REG_FRAME_MOD_START_OFFSET, 0x40);
     port_write_16(base_port + uhci::REG_STATUS_OFFSET, 0x001F);
 
@@ -145,24 +147,6 @@ static bool reset_port(uint16_t port) {
     return false;
 }
 
-static bool enable_port(uint16_t port, bool check) {
-    if(check && port_is_valid(port)) {
-        // Check if this port exists, only 2 are guaranteed
-        return false;
-    }
-
-    return reset_port(port);
-}
-
-static void enable_ports(void* base) {
-    uint16_t start = (uint16_t)(uint64_t)base + uhci::REG_PORT1_STAT_CTRL_OFFSET;
-    int index = 0;
-    while(enable_port(start, index > 1)) {
-        index++;
-        start += 2;
-    }
-}
-
 int uhci_init(pci_device_t* dev) {
     uint64_t io_addr = dev->bar[4] & ~0x3;
     if(!really_uhci((void *)io_addr)) {
@@ -170,7 +154,6 @@ int uhci_init(pci_device_t* dev) {
     }
 
     setup_controller((void *)io_addr);
-    enable_ports((void *)io_addr);
 
     return 0;
 }
@@ -245,7 +228,7 @@ UHCIController::UHCIController(UHCIController&& other)
     other._stack = nullptr;
 }
 
-void UHCIController::insert(uint8_t q, uhci_queue_t* entry) {
+bool UHCIController::insert(uint8_t q, uhci_queue_t* entry, bool wait) {
     KERNEL_ASSERT(q <= QUEUE_1MS);
 
     auto* queue = &_queues[q];
@@ -256,6 +239,32 @@ void UHCIController::insert(uint8_t q, uhci_queue_t* entry) {
     queue->element_link_ptr = Q_TO_UINT32(entry) | uhci::LINK_PTR_QUEUE_FLAG;
     entry->head_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
     entry->previous_link_ptr = (uint32_t)(uint64_t)queue;
+    if(!wait) {
+        return true;
+    }
+
+    int timeout = 10000;
+    uint16_t stat;
+    while(!((stat = port_read_16(_port + uhci::REG_STATUS_OFFSET)) & uhci::STATUS_USB_INT_FLAG) && timeout > 0) {
+        if(stat & uhci::STATUS_USB_ERR_INT_FLAG) {
+            uart_print("Received an error interrupt while getting device descriptor...\r\n");
+            remove(entry);
+            return false;
+        }
+
+        timeout--;
+        pit_sleepms(1);
+    }
+
+    if(timeout == 0) {
+        uart_print("UHCI timed out on getting device descriptor...\r\n");
+        remove(entry);
+        return false;
+    }
+
+    // Clear interrupt bit (write clear)
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+    remove(entry);
 }
 
 void UHCIController::remove(uhci_queue_t* entry) {
@@ -267,7 +276,46 @@ void UHCIController::remove(uhci_queue_t* entry) {
      }
 }
 
-constexpr uint8_t UHCI_REQUEST_WORD_SIZE = 4;
+static void make_setup_packet(uhci_transfer_desc_t* td, void* buffer, bool ls_device, int dev_address) {
+    td->link_ptr = Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
+    td->ctrl_status = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
+    td->packet_hdr = (0x7 << uhci::TD_MAX_LEN_OFFSET) | (dev_address & uhci::TD_DEV_ADDRESS_MASK) << uhci::TD_DEV_ADDRESS_OFFSET | uhci::TD_PACKET_SETUP;
+    td->buf_ptr = (uint32_t)(uint64_t)buffer;
+    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+}
+
+static void make_in_packet(uhci_transfer_desc_t* td, void* buffer, bool ls_device, int dev_address, int td_idx, int size) {
+    td->link_ptr =  Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
+    td->ctrl_status = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
+    
+    td->packet_hdr = ((size - 1) << uhci::TD_MAX_LEN_OFFSET) | ((td_idx & 1) ? uhci::TD_DATA_TOGGLE_FLAG : 0) | 
+                        (dev_address & uhci::TD_DEV_ADDRESS_MASK) << uhci::TD_DEV_ADDRESS_OFFSET | uhci::TD_PACKET_IN;
+    td->buf_ptr = (uint32_t)((uint64_t)buffer);
+    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+}
+
+static void make_out_packet(uhci_transfer_desc_t* td, bool ls_device, int dev_address) {
+    td->link_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
+    td->ctrl_status = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
+    td->packet_hdr = (0x7ff << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_DATA_TOGGLE_FLAG | (dev_address & uhci::TD_DEV_ADDRESS_MASK) << uhci::TD_DEV_ADDRESS_OFFSET
+                     | uhci::TD_PACKET_OUT;
+    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+}
+
+static bool verify_tds(uhci_transfer_desc_t* td, size_t count) {
+    for(int i = 0; i < count; i++) {
+        uint8_t td_status = (td->ctrl_status >> uhci::TD_STATUS_OFFSET) & uhci::TD_STATUS_MASK;
+        uint16_t actual_len = td->ctrl_status & uhci::TD_ACTUAL_LENGTH_MASK;
+        uint16_t in_len = (td->packet_hdr >> uhci::TD_MAX_LEN_OFFSET) & uhci::TD_MAX_LEN_MASK;
+        if(td_status != 0 || in_len != actual_len) {
+            return false;
+        }
+
+        td++;
+    }
+
+    return true;
+}
 
 bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device, 
                                      int dev_address, int packet_size, int size) {
@@ -279,10 +327,12 @@ bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device
         .length = 0
     };
 
+    const int NUM_TD_DESC = 10;
+
     setup_packet.length = size;
 
-    void* buffer = PageFrameAllocator::SharedAllocator()->RequestPage();
-    auto* queue = (uhci_queue_t *)buffer;
+    SmartPage page(1);
+    auto* queue = (uhci_queue_t *)(void *)page;
     queue->head_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
     queue->previous_link_ptr = 0;
     queue->reserved = 0;
@@ -292,53 +342,198 @@ bool UHCIController::get_device_desc(usb_device_desc_t* dev_desc, bool ls_device
     queue->element_link_ptr = Q_TO_UINT32(td);
 
     // TD 0 (SETUP packet)
-    td->link_ptr = Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
-    td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
-    td->info = (0x7 << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_PACKET_SETUP;
-    td->buf_ptr = (uint32_t)(uint64_t)(start + 3);
-    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+    make_setup_packet(td, start + NUM_TD_DESC, ls_device, dev_address);
+    td++;
+
+    while(size > 0 && (td - start) < 9) {
+        int td_idx = td - start;
+        int t = std::min(size, packet_size);
+        void* buffer = (void *)(uint64_t)(start + NUM_TD_DESC) + 0x10 + (packet_size * (td_idx - 1));
+        make_in_packet(td, buffer, ls_device, dev_address, td_idx, size);
+        size -= t;
+        td++;
+    }
+
+    // TD 2 (OUT packet)
+    make_out_packet(td, ls_device, dev_address);
+    td->ctrl_status |= uhci::TD_IOC_FLAG;
     td++;
     
+    usb_device_req_packet_t* request = (usb_device_req_packet_t *)(start + NUM_TD_DESC);
+    memcpy(request, &setup_packet, sizeof(usb_device_req_packet_t));
+
+    // Clear interrupt bit (write clear)
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+
+    int td_cnt = td - start;
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return false;
+    }
+
+    *dev_desc = *(usb_device_desc_t *)((uint64_t)(start + NUM_TD_DESC) + 0x10);
+    
+    return true;
+}
+
+bool UHCIController::set_address(int dev_address, bool ls_device) {
+    static usb_device_req_packet_t setup_packet = {
+        .request_type = usb::REQUEST_TYPE_SET_ADDR,
+        .request = usb::REQUEST_CODE_SET_ADDRESS,
+        .value = 0,
+        .index = 0,
+        .length = 0
+    };
+
+    const int NUM_TD_DESC = 2;
+
+    setup_packet.value = dev_address;
+
+    SmartPage page(1);
+    auto* queue = (uhci_queue_t *)(void *)page;
+    queue->head_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
+    queue->previous_link_ptr = 0;
+    queue->reserved = 0;
+
+    uhci_transfer_desc_t* td = (uhci_transfer_desc_t *)(uint64_t)(queue + 1);
+    uhci_transfer_desc_t* start = td;
+    queue->element_link_ptr = Q_TO_UINT32(td);
+
+    // TD 0 (SETUP packet)
+    make_setup_packet(td, start + NUM_TD_DESC, ls_device, 0);
+    td++;
+
+    // TD 1 (ACK IN packet)
+    make_in_packet(td, nullptr, ls_device, 0, 1, 0x800);
+    td->link_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
+    td->ctrl_status |= uhci::TD_IOC_FLAG;
+    td++;
+
+    usb_device_req_packet_t* request = (usb_device_req_packet_t *)(start + NUM_TD_DESC);
+    memcpy(request, &setup_packet, sizeof(usb_device_req_packet_t));
+
+    // Clear interrupt bit (write clear)
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return false;
+    }
+
+    return verify_tds(start, 2);
+}
+
+int UHCIController::get_language_index(uint16_t lcid, int device_address, bool ls_device) {
+    static usb_device_req_packet_t setup_packet = {
+        .request_type = usb::REQUEST_TYPE_DESCRIPTOR,
+        .request = usb::REQUEST_CODE_GET_DESCRIPTOR,
+        .value = usb::DESCRIPTOR_TYPE_STRING,
+        .index = 0,
+        .length = 0
+    };
+
+    setup_packet.length = 8;
+    int numTd = 3;
+
+    SmartPage page(1);
+    auto* queue = (uhci_queue_t *)(void *)page;
+    queue->head_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
+    queue->previous_link_ptr = 0;
+    queue->reserved = 0;
+
+    uhci_transfer_desc_t* td = (uhci_transfer_desc_t *)(uint64_t)(queue + 1);
+    uhci_transfer_desc_t* start = td;
+    queue->element_link_ptr = Q_TO_UINT32(td);
+
+    // TD 0 (SETUP packet)
+    make_setup_packet(td, start + numTd, ls_device, device_address);
+    td++;
+
     // TD 1 (IN packet)
-    td->link_ptr = Q_TO_UINT32(td + 1) | uhci::LINK_PTR_DEPTH_FIRST_FLAG;
-    td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET);
-    td->info = (0x7 << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_DATA_TOGGLE_FLAG | uhci::TD_PACKET_IN;
-    td->buf_ptr = (uint32_t)((uint64_t)(start + 3) + 0x10);
-    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+    make_in_packet(td, start + numTd, ls_device, device_address, 1, 8);
     td++;
 
     // TD 2 (OUT packet)
-    td->link_ptr = uhci::LINK_PTR_TERMINATE_FLAG;
-    td->reply = (ls_device ? uhci::TD_LOW_SPEED_FLAG : 0) | (0b11 << uhci::TD_ERROR_OFFSET) | (0x80 << uhci::TD_STATUS_OFFSET) | uhci::TD_IOC_FLAG;
-    td->info = (0x7ff << uhci::TD_MAX_LEN_OFFSET) | uhci::TD_PACKET_OUT;
-    td->reserved[0] = 0; td->reserved[1] = 0; td->reserved[2] = 0; td->reserved[3] = 0;
+    make_out_packet(td, ls_device, device_address);
     td++;
-    
-    usb_device_req_packet_t* request = (usb_device_req_packet_t *)td;
+
+    usb_device_req_packet_t* request = (usb_device_req_packet_t *)(start + numTd);
     memcpy(request, &setup_packet, sizeof(usb_device_req_packet_t));
 
-    insert(QUEUE_1MS, queue);
+    // Clear interrupt bit (write clear)
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
 
-    uint16_t stat;
-    uint16_t frame_no;
-    uint8_t td_stat;
-    td = start;
-    do {
-        frame_no = port_read_16(_port + uhci::REG_FRAME_NO_OFFSET) & 0x3ff;
-        stat = port_read_16(_port + uhci::REG_STATUS_OFFSET);
-        td_stat = (td->reply >> uhci::TD_STATUS_OFFSET) & uhci::TD_STATUS_MASK;
-    } while((stat & 0x1) == 0);
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return -1;
+    }
+
+    if(!verify_tds(td, 3)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+const char* UHCIController::get_string(int device_address, uint16_t port, int& langIndex, int index) {
+    bool ls_device = port_read_16(port) & uhci::PORT_STAT_LOSPD_FLAG;
+    if(langIndex == -1) {
+        langIndex = get_language_index(0x09, device_address, ls_device);
+    }
+
+    return nullptr;
 }
 
 void UHCIController::discover_devices() {
-    uint16_t port = _port + uhci::REG_PORT1_STAT_CTRL_OFFSET;
-    int dev_address = 1;
-    while(port_is_valid(port)) {
+    if(_portCount) {
+        return;
+    }
+
+    int dev_address = 0;
+    for(uint16_t port = _port + uhci::REG_PORT1_STAT_CTRL_OFFSET; port_is_valid(port); port += 2) {
+        _portCount++;
+        dev_address++;
+        reset_port(port);
+        if(!(port_read_16(port) & uhci::PORT_STATUS_CONN_FLAG)) {
+            continue;
+        }
+
         usb_device_desc_t dev_desc;
         bool ls_device = port_read_16(port) & uhci::PORT_STAT_LOSPD_FLAG;
-        if(get_device_desc(&dev_desc, ls_device, 0, 8, 8)) {
-
+        if(!get_device_desc(&dev_desc, ls_device, 0, 8, 8)) {
+            continue;
         }
-        port += 2;
+
+        reset_port(port);
+        if(!set_address(dev_address, ls_device)) {
+            continue;
+        }
+
+        if(!get_device_desc(&dev_desc, ls_device, dev_address, dev_desc.max_packet_size, dev_desc.length)) {
+            continue;
+        }
+
+        _connectedDevices.emplace_back(*this, dev_desc, port, dev_address);
     }
+}
+
+const UHCIDevice& UHCIController::get_device(size_t index) {
+    KERNEL_ASSERT(index < _connectedDevices.size());
+
+    return _connectedDevices[index];
+}
+
+UHCIDevice::UHCIDevice(UHCIController& parent, usb_device_desc_t desc, uint16_t port, int address)
+    :_parent(parent)
+    ,_desc(desc)
+    ,_port(port)
+    ,_address(address)
+{
+    
+}
+
+const char* UHCIDevice::manufacturer() {
+    if(strncmp("ADADAD", _manufacturer, 6) != 0) {
+        return _manufacturer;
+    }
+
+    _manufacturer = _parent.get_string(_address, _port, _englishAddress, _desc.manufacturer);
+    return _manufacturer;
 }

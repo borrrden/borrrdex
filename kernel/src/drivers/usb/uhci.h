@@ -4,6 +4,7 @@
 #include "usb.h"
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
 namespace uhci {
     constexpr uint8_t CMD_MAX_PACKET_FLAG           = 1 << 7;
@@ -94,13 +95,43 @@ typedef struct {
 
 typedef struct {
     uint32_t link_ptr;
-    uint32_t reply;
-    uint32_t info;
+    uint32_t ctrl_status;
+    uint32_t packet_hdr;
     uint32_t buf_ptr;
     uint32_t reserved[4];
 } uhci_transfer_desc_t;
 
 int uhci_init(pci_device_t* dev);
+class UHCIController;
+
+class UHCIDevice {
+public:
+    UHCIDevice(UHCIController& parent, usb_device_desc_t desc, uint16_t port, int address);
+
+    const char* usb_version() const;
+    uint8_t device_class() const { return _desc.dev_class; }
+    uint8_t device_subclass() const { return _desc.subclass; }
+    uint8_t device_protocol() const { return _desc.protocol; }
+    uint8_t max_packet_size() const { return _desc.max_packet_size; }
+    uint16_t vendor_id() const { return _desc.vendor_id; }
+    uint16_t product_id() const { return _desc.product_id; }
+    const char* device_release() const;
+    const char* manufacturer();
+    const char* product();
+    const char* serial_number();
+    uint8_t config_count() const { return _desc.configs; }
+
+private:
+    UHCIController& _parent;
+    usb_device_desc_t _desc;
+    uint16_t _port;
+    int _address;
+    int _englishAddress { -1 };
+
+    const char* _manufacturer {"ADADAD" };
+    const char* _product { "ADADAD" };
+    const char* _serialNumber { "ADADAD" };
+};
 
 class UHCIController {
 public:
@@ -112,16 +143,25 @@ public:
     ~UHCIController();
 
     void discover_devices();
+    const UHCIDevice& get_device(size_t index);
 
 private:
     UHCIController(const UHCIController& other) = delete;
 
-    void insert(uint8_t queue, uhci_queue_t* entry);
+    bool insert(uint8_t queue, uhci_queue_t* entry, bool wait);
     void remove(uhci_queue_t* entry);
     bool get_device_desc(usb_device_desc_t* dev_desc, bool ls_device, 
                          int dev_address, int packet_size, int size);
+    bool set_address(int dev_address, bool ls_device);
+
+    int get_language_index(uint16_t lcid, int device_address, bool ls_device);
+    const char* get_string(int device_address, uint16_t port, int& langIndex, int index);
+    
+    friend class UHCIDevice;
 
     uint16_t _port;
     void* _stack;
     uhci_queue_t *_queues;
+    uint8_t _portCount{0};
+    std::vector<UHCIDevice> _connectedDevices;
 };
