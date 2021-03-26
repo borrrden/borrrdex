@@ -28,9 +28,8 @@ void heap_combine_forward(heap_segment_hdr_t* hdr) {
         hdr->next->next->last = hdr;
     }
 
-    hdr->next = hdr->next->next;
-
     hdr->length = hdr->length + hdr->next->length + sizeof(heap_segment_hdr_t);
+    hdr->next = hdr->next->next;
 }
 
 void heap_combine_backward(heap_segment_hdr_t* hdr) {

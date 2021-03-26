@@ -103,10 +103,31 @@ typedef struct {
 
 int uhci_init(pci_device_t* dev);
 class UHCIController;
+class UHCIDevice;
+
+class UHCIConfiguration {
+public:
+
+};
+
+class UHCIString {
+public:
+    const char* get() { return _value; }
+
+    ~UHCIString();
+private:
+    friend class UHCIDevice;
+
+    UHCIString(UHCIController& controller, uint8_t deviceAddress, uint16_t port, uint8_t englishAddress, uint8_t stringIndex);
+
+    const char* _value;
+};
+
 
 class UHCIDevice {
 public:
     UHCIDevice(UHCIController& parent, usb_device_desc_t desc, uint16_t port, int address);
+    ~UHCIDevice();
 
     const char* usb_version() const;
     uint8_t device_class() const { return _desc.dev_class; }
@@ -121,6 +142,8 @@ public:
     const char* serial_number();
     uint8_t config_count() const { return _desc.configs; }
 
+    void set_configuration(uint8_t index);
+
 private:
     UHCIController& _parent;
     usb_device_desc_t _desc;
@@ -128,9 +151,11 @@ private:
     int _address;
     int _englishAddress { -1 };
 
-    const char* _manufacturer {"ADADAD" };
-    const char* _product { "ADADAD" };
-    const char* _serialNumber { "ADADAD" };
+    uint8_t find_english_address();
+
+    UHCIString* _manufacturer { nullptr };
+    UHCIString* _product { nullptr };
+    UHCIString* _serialNumber { nullptr };
 };
 
 class UHCIController {
@@ -155,9 +180,10 @@ private:
     bool set_address(int dev_address, bool ls_device);
 
     int get_language_index(uint16_t lcid, int device_address, bool ls_device);
-    const char* get_string(int device_address, uint16_t port, int& langIndex, int index);
+    char* get_string(int device_address, uint16_t port, uint8_t langIndex, int index);
     
     friend class UHCIDevice;
+    friend class UHCIString;
 
     uint16_t _port;
     void* _stack;

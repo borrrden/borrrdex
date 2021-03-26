@@ -6,6 +6,9 @@ EXTERN usb_handle
 __usb_irq_handler:
     cli
 
+    push qword 0
+    push qword 0
+
     mov [rsp-0x8], r15
     mov [rsp-0x10], r14
     mov [rsp-0x18], r13
@@ -24,6 +27,7 @@ __usb_irq_handler:
     mov [rsp-0x80], rax
     sub rsp, 0x80
 
+    mov rdi, rsp
     call usb_handle
 
     add rsp, 0x80
@@ -42,6 +46,8 @@ __usb_irq_handler:
     mov rdx, [rsp-0x70]
     mov rcx, [rsp-0x78]
     mov rax, [rsp-0x80]
+
+    add rsp, qword 16
 
     sti
     iretq

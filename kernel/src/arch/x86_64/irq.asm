@@ -29,7 +29,7 @@ GLOBAL isr_handler18
 GLOBAL isr_handler19
 
 isr_default_handler:
-    iret
+    iretq
 
 __enable_irq:
     sti

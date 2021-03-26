@@ -96,6 +96,57 @@ typedef struct {
 } __attribute__((packed)) usb_device_desc_t;
 
 typedef struct {
+    uint8_t length;
+    uint8_t type;
+    uint16_t langid[0];
+} __attribute__((packed)) usb_string_desc_t;
+
+typedef struct {
+    uint8_t desc_length;
+    uint8_t type;
+    uint16_t total_length;
+    uint8_t num_interfaces;
+    uint8_t config_string;
+    uint8_t attributes;
+    uint8_t max_power;
+} __attribute__((packed)) usb_config_desc_t;
+
+typedef struct {
+    uint8_t desc_length;
+    uint8_t type;
+    uint8_t interface_id;
+    uint8_t alternate_set;
+    uint8_t num_endpoints;
+    uint8_t class_code;
+    uint8_t subclass;
+    uint8_t protocol;
+    uint8_t interface_string;
+} __attribute__((packed)) usb_interface_desc_t;
+
+typedef struct {
+    uint8_t desc_type;
+    uint16_t desc_length;
+} __attribute__((packed)) usb_desc_type_length_t;
+
+typedef struct {
+    uint8_t desc_length;
+    uint8_t type;
+    uint16_t release;
+    uint8_t country_code;
+    uint8_t num_descriptors;
+    usb_desc_type_length_t descriptors[0];
+} __attribute__((packed)) usb_hid_desc_t;
+
+typedef struct {
+    uint8_t desc_length;
+    uint8_t type;
+    uint8_t address;
+    uint8_t attributes;
+    uint16_t max_packet_size;
+    uint8_t interval;
+} __attribute__((packed)) usb_endpoint_desc_t;
+
+typedef struct {
     uint8_t request_type;
     uint8_t request;
     uint16_t value;
