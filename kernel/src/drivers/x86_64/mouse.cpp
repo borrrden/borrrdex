@@ -2,7 +2,7 @@
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/pic.h"
-#include "string.h"
+#include "libk/string.h"
 #include "graphics/BasicRenderer.h"
 
 extern "C" void __mouse_irq_handler();

@@ -3,7 +3,7 @@
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/io/io.h"
 
-#include <cstddef>
+#include <stddef.h>
 
 volatile uint32_t pit_counter = 0;
 

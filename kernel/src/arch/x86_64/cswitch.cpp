@@ -3,10 +3,10 @@
 #include "arch/x86_64/irq.h"
 #include "KernelUtil.h"
 #include "paging/PageTableManager.h"
-#include "thread.h"
+#include "scheduling/thread.h"
 #include "tss.h"
 #include "interrupt/interrupt.h"
-#include "scheduler.h"
+#include "scheduling/scheduler.h"
 
 constexpr uint32_t THREAD_FLAGS = 0x200202;
 

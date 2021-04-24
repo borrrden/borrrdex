@@ -4,7 +4,7 @@
 #error C++ Only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 struct Point {
     long x, y;

@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 #include "fs/vfs.h"
 
 // ELF-64 Object File Format 1.5d2 p. 2

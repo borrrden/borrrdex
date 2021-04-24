@@ -4,7 +4,7 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint8_t GDT_MAX_DESCRIPTORS   = 16;       ///< The number of entries that can fit into the GDT
 

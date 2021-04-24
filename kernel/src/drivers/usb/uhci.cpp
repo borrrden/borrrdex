@@ -8,7 +8,7 @@
 #include "paging/PageFrameAllocator.h"
 #include "SmartPage.h"
 #include "Panic.h"
-#include "string.h"
+#include "libk/string.h"
 #include "io/serial.h"
 #include "memory/heap.h"
 #include <vector>
@@ -214,6 +214,9 @@ UHCIController::UHCIController(uint16_t port, void* stack)
             stack_frame[i - 1] = Q_TO_UINT32(&_queues[QUEUE_1MS]) | uhci::FRAME_PTR_QUEUE_FLAG;
         }
     }
+
+    discover_devices();
+    search_for_modules();
 }
 
 UHCIController::~UHCIController() {
@@ -340,7 +343,7 @@ static int prepare_setup_in_out_queue(usb_device_req_packet_t* request, void* bu
     while(size > 0 && (td - start) < max_td - 1) {
         int td_idx = td - start;
         int t = std::min(size, packet_size);
-        void* buffer = (void *)(uint64_t)(start + max_td) + 0x10 + (packet_size * (td_idx - 1));
+        void* buffer = (void *)((uint64_t)(start + max_td) + 0x10 + (packet_size * (td_idx - 1)));
         make_in_packet(td, buffer, ls_device, dev_address, td_idx, size);
         size -= t;
         td++;
@@ -492,13 +495,13 @@ int UHCIController::get_language_index(uint16_t lcid, int device_address, bool l
     return -1;
 }
 
-char* UHCIController::get_string(int device_address, uint16_t port, uint8_t langIndex, int index) {
+char* UHCIController::get_string(int device_address, uint16_t port, uint8_t langIndex, uint8_t index) {
     bool ls_device = port_read_16(port) & uhci::PORT_STAT_LOSPD_FLAG;
 
     usb_device_req_packet_t setup_packet = {
         .request_type = usb::REQUEST_TYPE_DESCRIPTOR,
         .request = usb::REQUEST_CODE_GET_DESCRIPTOR,
-        .value = usb::DESCRIPTOR_TYPE_STRING | index,
+        .value = (uint16_t)(usb::DESCRIPTOR_TYPE_STRING | index),
         .index = langIndex,
         .length = 0
     };
@@ -572,87 +575,172 @@ void UHCIController::discover_devices() {
             continue;
         }
 
-        _connectedDevices.emplace_back(*this, dev_desc, port, dev_address);
+        _connectedDevices.emplace_back(dev_desc, port, dev_address);
     }
 }
 
-const UHCIDevice& UHCIController::get_device(size_t index) {
-    KERNEL_ASSERT(index < _connectedDevices.size());
+static module_t* usb_find_module(uint8_t classcode, uint8_t subclass, uint8_t protocol) {
+    for(module_t* module = &_ModulesStart; module != &_ModulesEnd; module++) {
+        if(module->module_type == MODULE_TYPE_USB) {
+            usb_device_module_t *usb_module = (usb_device_module_t*)module->module;
+            if(classcode == usb_module->classcode && subclass == usb_module->subclass && protocol == usb_module->protocol) {
+                return module;
+            }
+        }
+    }
 
-    return _connectedDevices[index];
+    return nullptr;
 }
 
-UHCIDevice::UHCIDevice(UHCIController& parent, usb_device_desc_t desc, uint16_t port, int address)
-    :_parent(parent)
-    ,_desc(desc)
+void UHCIController::search_for_modules() {
+    for(const auto& dev : _connectedDevices) {
+        uint8_t dev_class = dev.descriptor()->dev_class;
+        uint8_t subclass = dev.descriptor()->subclass;
+        uint8_t protocol = dev.descriptor()->protocol;
+        if(dev.descriptor()->dev_class == 0) {
+            usb_config_desc_t* config = get_configuration(dev.address(), dev.port(), 0);
+            usb_interface_desc_t* interface = (usb_interface_desc_t *)usb_find_descriptor_type(config, usb::DESCRIPTOR_RET_TYPE_INTERFACE);
+            if(!interface) {
+                kfree(config);
+                uart_print("Unable to find interface for USB device with no class, skipping...");
+                continue;
+            }
+
+            dev_class = interface->class_code;
+            subclass = interface->subclass;
+            protocol = interface->protocol;
+            kfree(config);
+        }
+
+        module_t* m = usb_find_module(dev_class, subclass, protocol);
+        if(!m) {
+            uart_printf("No module found for USB device (class %d, subclass %d, protocol %d)", dev_class, subclass, protocol);
+        } else {
+            ((usb_device_module_t *)m->module)->device_handler(to_generic_controller(), dev.address());
+        }
+    }
+}
+
+usb_config_desc_t* UHCIController::get_configuration(int device_address, uint16_t port, uint8_t index) {
+    bool ls_device = port_read_16(port) & uhci::PORT_STAT_LOSPD_FLAG;
+
+    usb_device_req_packet_t setup_packet = {
+        .request_type = usb::REQUEST_TYPE_DESCRIPTOR,
+        .request = usb::REQUEST_CODE_GET_DESCRIPTOR,
+        .value = (uint16_t)(usb::DESCRIPTOR_TYPE_CONFIG | index),
+        .index = 0,
+        .length = 8
+    };
+
+    int numTd = 3;
+    SmartPage page(1);
+    int td_cnt = prepare_setup_in_out_queue(&setup_packet, (void *)page, ls_device, 3, device_address, 8, 8);
+    auto* queue = (uhci_queue_t *)(void *)page;
+
+    // Clear interrupt bit (write clear)
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return nullptr;
+    }
+
+    uhci_transfer_desc_t* first_td = (uhci_transfer_desc_t *)(queue + 1);
+    if(!verify_tds(first_td, td_cnt)) {
+        return nullptr;
+    }
+
+    usb_config_desc_t* config_desc = (usb_config_desc_t *)((uint64_t)(first_td + numTd) + 0x10);
+    numTd = (config_desc->desc_length + config_desc->total_length) / 8 + 2;
+    td_cnt = prepare_setup_in_out_queue(&setup_packet, (void *)page, ls_device, numTd, device_address, 8, (config_desc->desc_length + config_desc->total_length));
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return nullptr;
+    }
+
+    if(!verify_tds(first_td, td_cnt)) {
+        return nullptr;
+    }
+
+    config_desc = (usb_config_desc_t *)((uint64_t)(first_td + numTd) + 0x10);
+    usb_config_desc_t* returnVal = (usb_config_desc_t *)kmalloc(config_desc->desc_length + config_desc->total_length);
+    memcpy(returnVal, config_desc, config_desc->desc_length + config_desc->total_length);
+    return returnVal;
+}
+
+static bool uhci_send_request(void* context, usb_device_req_packet_t* packet, int device_address, usb_buffer_t* result) {
+    UHCIController* controller = (UHCIController *)context;
+    return controller->send_request(packet, device_address, result);
+}
+
+bool UHCIController::send_request(usb_device_req_packet_t* packet, int device_address, usb_buffer_t* result) {
+    UHCIDevice device;
+    bool found = false;
+    for(auto d : _connectedDevices) {
+        if(d.address() == device_address) {
+            device = d;
+            found = true;
+            break;
+        }
+    }
+
+    if(!found) {
+        return false;
+    }
+
+    bool ls_device = device.low_speed();
+    SmartPage page(1);
+    auto* queue = (uhci_queue_t *)(void *)page;
+    if(packet->length == 0) {
+        int numTd = 3;
+        int td_cnt = prepare_setup_in_out_queue(packet, (void *)page, ls_device, 3, device_address, 8, 8);
+
+        // Clear interrupt bit (write clear)
+        port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+        if(!insert(QUEUE_1MS, queue, true)) {
+            return false;
+        }
+        
+        uhci_transfer_desc_t* first_td = (uhci_transfer_desc_t *)(queue + 1);
+        if(!verify_tds(first_td, td_cnt)) {
+            return false;
+        }
+
+        usb_descriptor_base_t* received = (usb_descriptor_base_t *)((uint64_t)(first_td + numTd) + 0x10);
+        packet->length = received->length;
+        if(received->type == usb::DESCRIPTOR_RET_TYPE_CONFIG) {
+            packet->length = ((usb_config_desc_t *)received)->total_length;
+        }
+    }
+
+    int numTd = packet->length / 8 + 2;
+    int td_cnt = prepare_setup_in_out_queue(packet, (void *)page, ls_device, numTd, device_address, 8, packet->length);
+    port_write_16(_port + uhci::REG_STATUS_OFFSET, 0x0001); 
+    if(!insert(QUEUE_1MS, queue, true)) {
+        return false;
+    }
+
+    uhci_transfer_desc_t* first_td = (uhci_transfer_desc_t *)(queue + 1);
+    if(!verify_tds(first_td, td_cnt)) {
+        return false;
+    }
+    
+    result->buf = kmalloc(packet->length);
+    result->size = packet->length;
+    void* resultAddr = (void *)((uint64_t)(first_td + numTd) + 0x10);
+    memcpy(result->buf, resultAddr, packet->length);
+    return true;
+}
+
+generic_usb_controller_t UHCIController::to_generic_controller() {
+    return {
+        .real_device = this,
+        .send_request = uhci_send_request,
+    };
+}
+
+UHCIDevice::UHCIDevice(usb_device_desc_t desc, uint16_t port, uint8_t address)
+    :_desc(desc)
     ,_port(port)
     ,_address(address)
 {
-    
-}
-
-UHCIDevice::~UHCIDevice() {
-    delete _manufacturer;
-    delete _product;
-    delete _serialNumber;
-}
-
-uint8_t UHCIDevice::find_english_address() {
-    if(_englishAddress != -1) {
-        return (uint8_t)_englishAddress;
-    }
-
-    bool ls_device = port_read_16(_port) & uhci::PORT_STAT_LOSPD_FLAG;
-    _englishAddress = _parent.get_language_index(0x009, _address, ls_device);
-    return (uint8_t)_englishAddress;
-}
-
-const char* UHCIDevice::manufacturer() {
-    if(_manufacturer) {
-        return _manufacturer->get();
-    }
-
-    uint8_t englishAddress = find_english_address();
-    if(englishAddress == 0xFF) {
-        return nullptr;
-    }
-
-    _manufacturer = new UHCIString(_parent,_address, _port, _englishAddress, _desc.manufacturer);
-    return _manufacturer->get();
-}
-
-const char* UHCIDevice::product() {
-    if(_product) {
-        return _product->get();
-    }
-
-    uint8_t englishAddress = find_english_address();
-    if(englishAddress == 0xFF) {
-        return nullptr;
-    }
-
-    _product = new UHCIString(_parent, _address, _port, englishAddress, _desc.product);
-    return _product->get();
-}
-
-const char* UHCIDevice::serial_number() {
-    if(_serialNumber) {
-        return _serialNumber->get();
-    }
-
-    uint8_t englishAddress = find_english_address();
-    if(englishAddress == 0xFF) {
-        return nullptr;
-    }
-
-    _serialNumber = new UHCIString(_parent, _address, _port, _englishAddress, _desc.serial_no);
-    return _serialNumber->get();
-}
-
-UHCIString::UHCIString(UHCIController& controller, uint8_t deviceAddress, uint16_t port, uint8_t englishAddress, uint8_t stringIndex) {
-    _value = controller.get_string(deviceAddress, port, englishAddress, stringIndex);
-}
-
-UHCIString::~UHCIString() {
-    kfree((void *)_value);
+    _lowSpeed = port_read_16(port) & uhci::PORT_STAT_LOSPD_FLAG;
 }

@@ -5,8 +5,8 @@
 #endif
 
 #include "common.h"
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
 
 namespace madt {
     // Interrupt Control Structure Types (ACPI 6.4 p.171)

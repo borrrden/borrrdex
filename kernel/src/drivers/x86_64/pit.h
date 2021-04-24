@@ -4,7 +4,7 @@
 #error C++ Only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint8_t PIT_COUNTER0_REG  = 0x40;
 constexpr uint8_t PIT_COUNTER1_REG  = 0x41;

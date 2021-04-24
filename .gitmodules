@@ -1,0 +1,3 @@
+[submodule "mlibc"]
+	path = mlibc/src
+	url = ssh://git@github.com/borrrden/mlibc

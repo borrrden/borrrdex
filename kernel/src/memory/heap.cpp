@@ -1,7 +1,7 @@
 #include "heap.h"
 #include "KernelUtil.h"
 #include "paging/PageTableManager.h"
-#include "string.h"
+#include "libk/string.h"
 
 static void* s_heap_start;
 static void* s_heap_end;
@@ -165,6 +165,10 @@ void* krealloc(void* address, size_t size) {
 }
 
 void kfree(void* address) {
+    if(!address) {
+        return;
+    }
+    
     heap_segment_hdr_t* segment = (heap_segment_hdr_t *)address - 1;
     segment->free = true;
     heap_combine_forward(segment);

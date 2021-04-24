@@ -1,5 +1,5 @@
 #include "cpuid.h"
-#include "string.h"
+#include "libk/string.h"
 
 constexpr size_t CPUID_VENDOR_SIZE = sizeof(uint32_t) * 3 + 1;
 constexpr size_t CPUID_BRAND_SIZE = sizeof(uint32_t) * 12 + 1;

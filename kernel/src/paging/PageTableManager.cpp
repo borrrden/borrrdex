@@ -1,10 +1,10 @@
 #include "PageTableManager.h"
 #include "PageMapIndexer.h"
 #include "PageFrameAllocator.h"
-#include "string.h"
+#include "libk/string.h"
 #include "KernelUtil.h"
 
-#include <cstdint>
+#include <stdint.h>
 #include <utility>
 
 static uint64_t s_system_memory_size;

@@ -1,5 +1,5 @@
 #include "Bitmap.h"
-#include "string.h"
+#include "libk/string.h"
 
 Bitmap::Bitmap(size_t size, void* buffer)
     :_size(size)

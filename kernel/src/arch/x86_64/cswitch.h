@@ -5,7 +5,7 @@
 #endif
 
 #include "paging/PageTableManager.h"
-#include <cstdint>
+#include <stdint.h>
 
 typedef struct {
     uint64_t* stack;

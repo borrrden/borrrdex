@@ -1,9 +1,6 @@
 #include "serial.h"
 #include "io.h"
 
-#include <cstdint>
-#include <cstdarg>
-
 constexpr uint16_t COM1 = 0x3f8;
 
 int is_transmit_empty() {

@@ -7,7 +7,7 @@
 #include "paging/PageFrameAllocator.h"
 #include "graphics/BasicRenderer.h"
 #include "Panic.h"
-#include "string.h"
+#include "libk/string.h"
 #include "io/serial.h"
 
 /*

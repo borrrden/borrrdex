@@ -5,7 +5,7 @@
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/pic.h"
 #include "arch/x86_64/cpuid.h"
-#include <cstddef>
+#include <stddef.h>
 
 extern "C" void __enable_irq();
 extern "C" void __disable_irq();

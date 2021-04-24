@@ -1,6 +1,6 @@
 #include "io.h"
 #include "memory/Memory.h"
-#include "string.h"
+#include "libk/string.h"
 #include <stddef.h>
 
 void port_yield() {

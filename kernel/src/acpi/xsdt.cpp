@@ -3,7 +3,7 @@
 #include "hpet.h"
 #include "mcfg.h"
 #include "../graphics/BasicRenderer.h"
-#include "string.h"
+#include "libk/string.h"
 #include "apic.h"
 
 size_t XSDT::count() const {

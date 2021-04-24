@@ -7,7 +7,8 @@
 #include "pci/pci.h"
 #include "ahci.h"
 #include "AHCIDrive.h"
-#include <cstdint>
+#include <stdint.h>
+#include <stddef.h>
 
 typedef struct {
     uint8_t slot_count;

@@ -2,7 +2,7 @@
 #include "../graphics/BasicRenderer.h"
 #include "stalloc.h"
 #include "KernelUtil.h"
-#include "string.h"
+#include "libk/string.h"
 #include "../../../bios/multiboot.h"
 
 enum memmap_types_t

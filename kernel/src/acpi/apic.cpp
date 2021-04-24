@@ -1,5 +1,5 @@
 #include "apic.h"
-#include "string.h"
+#include "libk/string.h"
 #include "KernelUtil.h"
 #include "arch/x86_64/pic.h"
 #include <type_traits>

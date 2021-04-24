@@ -11,18 +11,18 @@
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "drivers/x86_64/pit.h"
 #include "Panic.h"
-#include "string.h"
+#include "libk/string.h"
 #include "paging/PageFrameAllocator.h"
 #include "fs/vfs.h"
-#include "stdatomic.h"
 #include "init/common.h"
-#include "thread.h"
+#include "scheduling/thread.h"
 #include "stalloc.h"
 #include "../../bios/multiboot.h"
 #include "drivers/polltty.h"
 #include "graphics/kwrite.h"
+#include "drivers/usb/uhci.h"
 
-#include <cstddef>
+#include <stddef.h>
 
 struct KernelUpdateEntries {
     BasicRenderer *renderer;
@@ -94,5 +94,5 @@ extern "C" void _start(BootInfo* bootInfo) {
     thread_run(startup_thread);
 
     thread_switch();
-    //while(true) asm("hlt");
+    // while(true) asm("hlt");
 }

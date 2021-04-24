@@ -1,9 +1,9 @@
-CC = gcc
-LD = ld
+CC = x86_64-borrrdex-gcc
+LD = x86_64-borrrdex-ld
 ASM = nasm
 
-override CFLAGS := -I ../libc/include -fno-builtin -nostdlib -nostdinc -g $(CFLAGS)
-LDFLAGS = -static -nostdlib
+override CFLAGS := -g $(CFLAGS)
+LDFLAGS = -lc
 
 SRCDIR := src
 OBJDIR := lib
@@ -24,7 +24,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 
 link:
 	@ echo !== Linking $^
-	$(LD) $(LDFLAGS) -o $(BUILDDIR)/usertest ../libc/bin/crt0.o ../libc/bin/crti.o $(OBJS) ../libc/bin/libc.a ../libc/bin/crtn.o
+	$(LD) $(LDFLAGS) -o $(BUILDDIR)/usertest ${HOME}/sysroot/usr/lib/crt0.o $(OBJS)
 
 setup:
 	@mkdir -p $(BUILDDIR)

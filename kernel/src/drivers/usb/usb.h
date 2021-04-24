@@ -1,5 +1,6 @@
 #pragma once
 #include "pci/PciDeviceType.h"
+#include "drivers/modules.h"
 
 namespace usb {
     // https://www.usb.org/defined-class-codes
@@ -76,7 +77,24 @@ namespace usb {
     constexpr uint16_t DESCRIPTOR_TYPE_DEV_QUAL         = 0x0600;
     constexpr uint16_t DESCRIPTOR_TYPE_OTH_SPD_CONFIG   = 0x0700;
     constexpr uint16_t DESCRIPTOR_TYPE_INTERFACE_PWR    = 0x0800;
+    constexpr uint16_t DESCRIPTOR_TYPE_HID_REPORT       = 0x2200;
+
+    // Descriptor types (same as above, but on the return value)
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_DEVICE        = 0x01;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_CONFIG        = 0x02;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_STRING        = 0x03;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_INTERFACE     = 0x04;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_ENDPOINT      = 0x05;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_DEV_QUAL      = 0x06;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_OTH_SPD_CONFIG= 0x07;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_INTERFACE_PWR = 0x08;
+    constexpr uint8_t DESCRIPTOR_RET_TYPE_HID           = 0x21;
 }
+
+typedef struct {
+    uint8_t length;
+    uint8_t type;
+} __attribute__((packed)) usb_descriptor_base_t;
 
 typedef struct {
     uint8_t length;
@@ -106,6 +124,7 @@ typedef struct {
     uint8_t type;
     uint16_t total_length;
     uint8_t num_interfaces;
+    uint8_t config_value;
     uint8_t config_string;
     uint8_t attributes;
     uint8_t max_power;
@@ -153,3 +172,34 @@ typedef struct {
     uint16_t index;
     uint16_t length;
 } __attribute__((packed)) usb_device_req_packet_t;
+
+typedef struct {
+    void* buf;
+    size_t size;
+} usb_buffer_t;
+
+void usb_buffer_free(usb_buffer_t* buf);
+
+usb_descriptor_base_t* usb_find_descriptor_type(usb_config_desc_t* config, uint8_t type);
+
+typedef struct {
+    void* real_device;
+    bool(*send_request)(void *, usb_device_req_packet_t *, int, usb_buffer_t*);
+} generic_usb_controller_t;
+
+#define USB_MODULE_INIT(name, handler, classcode, subcode, protocol) \
+    static usb_device_module_t __module_usb__##name \
+    __attribute__((section("real_modules_ptr"))) = \
+    {classcode, subcode, protocol, handler}; \
+    MODULE_DEFINE(MODULE_TYPE_USB, name, &__module_usb__##name)
+
+extern "C" {
+    typedef int(*usb_device_handler)(generic_usb_controller_t, uint8_t);
+
+    typedef struct {
+        uint8_t classcode;
+        uint8_t subclass;
+        uint8_t protocol;
+        usb_device_handler device_handler;
+    } usb_device_module_t;
+}

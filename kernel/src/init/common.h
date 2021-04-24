@@ -4,6 +4,6 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 void init_startup_thread(uint32_t arg);

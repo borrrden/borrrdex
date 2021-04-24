@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint16_t TFS_BLOCK_SIZE = 512;
 

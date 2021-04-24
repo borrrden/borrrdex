@@ -4,7 +4,7 @@
 #error C++ Only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint32_t EFLAGS_INTERRUPT_FLAG = 1 << 9;
 

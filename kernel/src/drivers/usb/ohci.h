@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pci/pci.h"
-#include <cstdint>
+#include <stdint.h>
 
 namespace ohci {
     constexpr uint8_t  REV_VERSION_MASK             = 0xff;

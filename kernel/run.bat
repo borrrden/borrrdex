@@ -6,7 +6,7 @@ set OVMFDIR=%OVMFDIR:"=%
 
 set PATH=C:\Program Files\qemu;%PATH%
 qemu-system-x86_64 -drive file=%BUILDDIR%/%OSNAME%.img^
-    -drive file=%BUILDDIR%/store.img^
+    -drive file=%BUILDDIR%/ext.img^
     -m 512M^
     -cpu qemu64^
     -drive if=pflash,format=raw,unit=0,file=%OVMFDIR%/OVMF_CODE-pure-efi.fd,readonly=on^
@@ -16,8 +16,7 @@ qemu-system-x86_64 -drive file=%BUILDDIR%/%OSNAME%.img^
     -monitor stdio^
     -rtc base=localtime,clock=host^
     -usb^
-    -device pci-ohci,id=ohci
-    ::-device usb-kbd,bus=ohci.0
+    -device usb-kbd
     ::-smp cores=2,sockets=1
     ::-serial file:%BUILDDIR%/serial.log^
     ::-netdev user,id=en0 -nic user,model=e1000^

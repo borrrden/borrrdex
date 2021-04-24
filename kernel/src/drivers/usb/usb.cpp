@@ -1,6 +1,7 @@
 #include "pci/pci.h"
 #include "uhci.h"
 #include "ohci.h"
+#include "memory/heap.h"
 
 constexpr uint8_t INTERFACE_UHCI = 0x0;
 constexpr uint8_t INTERFACE_OHCI = 0x10;
@@ -20,6 +21,26 @@ static int usb_init(pci_header_t* mem) {
         default:
             return -1;
     }
+}
+
+void usb_buffer_free(usb_buffer_t* buf) {
+    kfree(buf->buf);
+    buf->buf = nullptr;
+}
+
+usb_descriptor_base_t* usb_find_descriptor_type(usb_config_desc_t* config, uint8_t type) {
+    int remaining = config->total_length - config->desc_length;
+    usb_descriptor_base_t* current = (usb_descriptor_base_t *)((uint8_t *)config + config->desc_length);
+    while(remaining) {
+        if(current->type == type) {
+            return current;
+        }
+
+        remaining -= current->length;
+        current = (usb_descriptor_base_t *)((uint8_t *)current + current->length);
+    }
+
+    return nullptr;
 }
 
 PCI_MODULE_INIT(USB_PCI_MODULE, usb_init, 0xC, 0x3);

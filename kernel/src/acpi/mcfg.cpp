@@ -2,7 +2,7 @@
 #include "../pci/pci.h"
 #include "../graphics/BasicRenderer.h"
 #include "../paging/PageTableManager.h"
-#include "string.h"
+#include "libk/string.h"
 
 void MCFG::print() const {
     if(!is_valid()) {

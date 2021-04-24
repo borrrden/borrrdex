@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // Common header for all ACPI System Descriptor Tables
 // ACPI 6.4 p.141

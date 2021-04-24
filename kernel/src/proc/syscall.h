@@ -17,10 +17,11 @@
 #define STDOUT_HANDLE   0x1
 #define STDERR_HANDLE   0x2
 
-#include <__config.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void syscall_init();
 
@@ -32,4 +33,6 @@ typedef struct syscall_regs {
     uint64_t r12, r13, r14, r15;
 } syscall_regs_t;
 
-__END_DECLS
+#ifdef __cplusplus
+}
+#endif

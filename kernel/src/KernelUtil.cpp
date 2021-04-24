@@ -1,5 +1,5 @@
 #include "KernelUtil.h"
-#include "string.h"
+#include "libk/string.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/pic.h"
@@ -16,11 +16,12 @@
 #include "fs/vfs.h"
 #include "memory/heap.h"
 #include "init/init.h"
-#include "scheduler.h"
-#include "thread.h"
+#include "scheduling/scheduler.h"
+#include "scheduling/thread.h"
 #include "Panic.h"
 #include "acpi/apic.h"
 #include "arch/x86_64/interrupt/idt.h"
+#include "arch/x86_64/timer.h"
 #include "../../bios/multiboot.h"
 
 PageTableManager gPageTableManager(NULL);
@@ -66,6 +67,7 @@ void PrepareInterrupts() {
 
     keyboard_init();
     //ps2_mouse_init();
+    timer_init();
     pit_init();
     rtc_init();
 }
@@ -156,6 +158,10 @@ void* operator new(unsigned long size) {
 
 void operator delete(void* address) {
     return kfree(address);
+}
+
+void operator delete(void* address, size_t size) {
+    delete(address);
 }
 
 #if UINT32_MAX == UINTPTR_MAX

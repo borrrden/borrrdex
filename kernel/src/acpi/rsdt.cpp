@@ -1,5 +1,5 @@
 #include "rsdt.h"
-#include "string.h"
+#include "libk/string.h"
 
 size_t RSDT::count() const {
     return (_data->h.length - sizeof(_data->h)) / 8;

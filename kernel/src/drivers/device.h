@@ -4,7 +4,7 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 typedef struct {
     void* real_device;

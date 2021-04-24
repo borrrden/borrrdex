@@ -17,6 +17,9 @@ struct DeviceTypeEntry {
     const char* val;
 };
 
+template<typename T>
+const char* binary_search(DeviceTypeEntry<T> list[], T lookup, size_t start,size_t end);
+
 
 static DeviceTypeEntry<uint8_t> ClassList[] = {
     { 0x0, "Unclassified" },

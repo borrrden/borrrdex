@@ -3,9 +3,10 @@
 #include "graphics/BasicRenderer.h"
 #include "paging/PageTableManager.h"
 #include "paging/PageFrameAllocator.h"
-#include "thread.h"
-#include <cstdint>
+#include "scheduling/thread.h"
+#include <stdint.h>
 #include <vector>
+
 static int do_write(int filehandle, const uint8_t* buffer, int length) {
     if(filehandle == STDIN_HANDLE) {
         return -1;
@@ -21,10 +22,24 @@ static int do_write(int filehandle, const uint8_t* buffer, int length) {
     return 0;
 }
 
+static int do_read(int filehandle, uint8_t* buffer, int length) {
+    if(filehandle == STDOUT_HANDLE || filehandle == STDERR_HANDLE) {
+        return -1;
+    }
+
+    for(int i = 0; i < length; i++) {
+        
+    }
+
+    return 0;
+}
+
 uintptr_t syscall_entry(uintptr_t syscall, uintptr_t a0, uintptr_t a1, uintptr_t a2) {
     switch(syscall) {
         case SYSCALL_WRITE:
             return do_write((int)a0, (const uint8_t *)a1, (int)a2);
+        case SYSCALL_READ:
+            return do_read((int)a0, (uint8_t *)a1, (int)a2);
         case SYSCALL_EXIT:
             return 0;
         // case SYSCALL_SBRK:

@@ -4,7 +4,7 @@
 #error C++ Only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 void stalloc_init();
 uint64_t* stalloc(int bytes);

@@ -4,7 +4,7 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 void keyboard_init();
 char keyboard_getkey();

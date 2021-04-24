@@ -4,12 +4,17 @@
 #include "arch/x86_64/io/io.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "arch/x86_64/pic.h"
+#include "scheduling/Semaphore.h"
+
+constexpr uint8_t KEYBOARD_BUFFER_LENGTH = 255;
 
 volatile int kb_code = -1;
+static char s_keyboard_buffer[KEYBOARD_BUFFER_LENGTH];
 
 extern "C" void __keyboard_irq_handler();
 
 bool leftShift, rightShift, cursor;
+static int s_keyboard_wait;
 
 void HandleCursor(uint8_t scancode) {
     cursor = false;

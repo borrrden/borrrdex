@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 #define MODULE_DEFINE(type, name, module) \
     static module_t __module__##name \
@@ -14,7 +14,8 @@
 extern "C" {
     typedef enum {
         MODULE_TYPE_GENERAL,
-        MODULE_TYPE_PCI
+        MODULE_TYPE_PCI,
+        MODULE_TYPE_USB
     } module_type_t;
 
     typedef int(*module_init_t)(void);

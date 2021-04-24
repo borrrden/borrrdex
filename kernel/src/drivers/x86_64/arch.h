@@ -4,7 +4,7 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint16_t PAGE_SIZE = 4096;
 constexpr uint64_t PAGE_SIZE_MASK = 0xfffffffffffff000;

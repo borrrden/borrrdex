@@ -1,16 +1,17 @@
 #include "process.h"
-#include "thread.h"
+#include "scheduling/thread.h"
 #include "fs/vfs.h"
 #include "proc/elf.h"
 #include "paging/PageFrameAllocator.h"
-#include "string.h"
+#include "libk/string.h"
 #include "config.h"
 #include "Panic.h"
 #include "KernelUtil.h"
-#include "scheduler.h"
+#include "scheduling/scheduler.h"
 #include "graphics/BasicRenderer.h"
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "drivers/x86_64/arch.h"
+using namespace std;
 
 static void process_set_pagetable(void* pagetable) {
     WithInterrupts wi(false);

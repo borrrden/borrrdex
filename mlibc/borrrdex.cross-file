@@ -1,0 +1,12 @@
+[binaries]
+c = 'x86_64-borrrdex-gcc'
+cpp = 'x86_64-borrrdex-g++'
+
+[properties]
+needs_exe_wrapper = true
+
+[host_machine]
+system = 'borrrdex'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

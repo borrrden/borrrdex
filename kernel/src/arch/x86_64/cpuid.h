@@ -4,8 +4,8 @@
 #error C++ Only
 #endif
 
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 
 extern "C" void _cpuid(uint64_t* a, uint64_t* b, uint64_t* c, uint64_t* d);
 

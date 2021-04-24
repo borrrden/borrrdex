@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 
 void heap_init(void* virtualAddress, size_t numPages);
 void heap_expand(size_t length);

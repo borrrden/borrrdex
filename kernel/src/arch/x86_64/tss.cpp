@@ -1,6 +1,6 @@
 #include "tss.h"
 #include "config.h"
-#include "string.h"
+#include "libk/string.h"
 #include "gdt/gdt.h"
 
 extern "C" void __load_tss(uint16_t tss);

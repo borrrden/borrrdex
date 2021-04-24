@@ -4,11 +4,11 @@
 #include "arch/x86_64/interrupt/interrupt.h"
 #include "drivers/x86_64/keyboard.h"
 
-#include <stdatomic.h>
+#include <atomic>
 
 static device_t *s_device_table[CONFIG_MAX_DEVICES];
 
-static int s_number_of_devices;
+static std::atomic_int s_number_of_devices;
 
 //extern device_t *tty_dev;
 
@@ -39,7 +39,7 @@ int device_register(device_t* device) {
         return -1;
     }
 
-    int index = atomic_increment_i32(&s_number_of_devices);
+    int index = s_number_of_devices++;
     s_device_table[index] = device;
     return 0;
 }

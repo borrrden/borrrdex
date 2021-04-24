@@ -5,7 +5,7 @@
 #endif
 
 #include "drivers/device.h"
-#include <cstdint>
+#include <stdint.h>
 
 /**
  * This interface allows any device capable of storing blocks of data to be presented

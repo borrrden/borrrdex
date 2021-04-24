@@ -1,5 +1,5 @@
 #include "rsdp.h"
-#include "string.h"
+#include "libk/string.h"
 
 bool RSDP::is_valid() const {
 	return memcmp(_data->signature, signature, 8) == 0

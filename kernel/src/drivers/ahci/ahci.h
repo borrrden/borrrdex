@@ -4,7 +4,7 @@
 #error C++ only
 #endif
 
-#include <cstdint>
+#include <stdint.h>
 #include "drivers/device.h"
 #include "drivers/gbd.h"
 

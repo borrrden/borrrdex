@@ -2,8 +2,8 @@
 
 #include "pci/pci.h"
 #include "usb.h"
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 #include <vector>
 
 namespace uhci {
@@ -102,60 +102,21 @@ typedef struct {
 } uhci_transfer_desc_t;
 
 int uhci_init(pci_device_t* dev);
-class UHCIController;
-class UHCIDevice;
-
-class UHCIConfiguration {
-public:
-
-};
-
-class UHCIString {
-public:
-    const char* get() { return _value; }
-
-    ~UHCIString();
-private:
-    friend class UHCIDevice;
-
-    UHCIString(UHCIController& controller, uint8_t deviceAddress, uint16_t port, uint8_t englishAddress, uint8_t stringIndex);
-
-    const char* _value;
-};
-
 
 class UHCIDevice {
 public:
-    UHCIDevice(UHCIController& parent, usb_device_desc_t desc, uint16_t port, int address);
-    ~UHCIDevice();
+    UHCIDevice() {}
+    UHCIDevice(usb_device_desc_t desc, uint16_t port, uint8_t address);
 
-    const char* usb_version() const;
-    uint8_t device_class() const { return _desc.dev_class; }
-    uint8_t device_subclass() const { return _desc.subclass; }
-    uint8_t device_protocol() const { return _desc.protocol; }
-    uint8_t max_packet_size() const { return _desc.max_packet_size; }
-    uint16_t vendor_id() const { return _desc.vendor_id; }
-    uint16_t product_id() const { return _desc.product_id; }
-    const char* device_release() const;
-    const char* manufacturer();
-    const char* product();
-    const char* serial_number();
-    uint8_t config_count() const { return _desc.configs; }
-
-    void set_configuration(uint8_t index);
-
+    const usb_device_desc_t* descriptor() const { return &_desc; }
+    uint8_t address() const { return _address; }
+    uint16_t port() const { return _port; }
+    bool low_speed() const { return _lowSpeed; }
 private:
-    UHCIController& _parent;
     usb_device_desc_t _desc;
     uint16_t _port;
-    int _address;
-    int _englishAddress { -1 };
-
-    uint8_t find_english_address();
-
-    UHCIString* _manufacturer { nullptr };
-    UHCIString* _product { nullptr };
-    UHCIString* _serialNumber { nullptr };
+    uint8_t _address;
+    bool _lowSpeed;
 };
 
 class UHCIController {
@@ -168,8 +129,14 @@ public:
     ~UHCIController();
 
     void discover_devices();
-    const UHCIDevice& get_device(size_t index);
 
+    int get_language_index(uint16_t lcid, int device_address, bool ls_device);
+    char* get_string(int device_address, uint16_t port, uint8_t langIndex, uint8_t index);
+
+    bool send_request(usb_device_req_packet_t* packet, int device_address, usb_buffer_t* result);
+
+    usb_config_desc_t* get_configuration(int device_address, uint16_t port, uint8_t index);
+    generic_usb_controller_t to_generic_controller();
 private:
     UHCIController(const UHCIController& other) = delete;
 
@@ -179,11 +146,7 @@ private:
                          int dev_address, int packet_size, int size);
     bool set_address(int dev_address, bool ls_device);
 
-    int get_language_index(uint16_t lcid, int device_address, bool ls_device);
-    char* get_string(int device_address, uint16_t port, uint8_t langIndex, int index);
-    
-    friend class UHCIDevice;
-    friend class UHCIString;
+    void search_for_modules();
 
     uint16_t _port;
     void* _stack;

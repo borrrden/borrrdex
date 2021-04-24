@@ -4,7 +4,7 @@
 #include "acpi/xsdt.h"
 #include "acpi/apic.h"
 #include "arch/x86_64/cpuid.h"
-#include "string.h"
+#include "libk/string.h"
 #include "drivers/x86_64/pit.h"
 #include "arch/x86_64/gdt/gdt.h"
 #include "arch/x86_64/interrupt/idt.h"

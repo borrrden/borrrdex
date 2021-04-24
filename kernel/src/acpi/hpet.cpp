@@ -1,5 +1,5 @@
 #include "hpet.h"
-#include "string.h"
+#include "libk/string.h"
 
 bool HPET::is_valid() const {
     return memcmp(_data->h.signature, signature, 4) == 0

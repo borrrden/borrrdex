@@ -6,7 +6,7 @@
 
 #include "vfs.h"
 #include "drivers/gbd.h"
-#include <cstdint>
+#include <stdint.h>
 
 typedef struct filesystems_struct {
     const char* name;

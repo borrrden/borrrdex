@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include <cstdint>
+#include <stdint.h>
 
 // The Root System Descriptor Table, which holds the addreses
 // of all other system descriptor tables on the system

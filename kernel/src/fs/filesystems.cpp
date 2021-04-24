@@ -3,6 +3,7 @@
 #include "paging/PageFrameAllocator.h"
 #include "graphics/BasicRenderer.h"
 #include "fs/tfs.h"
+#include "fs/ext2.h"
 #include "io/serial.h"
 
 typedef struct partition {
@@ -24,6 +25,7 @@ typedef struct boot_sector {
 
 static filesystems_t s_filesystems[] = {
     {"TFS", &tfs_init},
+    {"ext2", &ext2_init},
     {nullptr, nullptr}
 };
 

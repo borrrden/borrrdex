@@ -2,11 +2,11 @@
 #include "filesystems.h"
 #include "config.h"
 #include "graphics/BasicRenderer.h"
-#include "stdatomic.h"
 #include "Panic.h"
 #include "io/serial.h"
-#include "string.h"
+#include "libk/string.h"
 #include <utility>
+#include <atomic>
 
 struct vfs_entry {
     fs_t* filesystem;

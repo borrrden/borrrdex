@@ -1,5 +1,5 @@
 #include "AHCIController.h"
-#include "string.h"
+#include "libk/string.h"
 #include "paging/PageTableManager.h"
 #include "KernelUtil.h"
 #include "Panic.h"

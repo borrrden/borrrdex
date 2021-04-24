@@ -2,8 +2,7 @@
 #include "io.h"
 #include "arch/x86_64/pic.h"
 #include "arch/x86_64/interrupt/interrupt.h"
-
-#include <cstddef>
+#include <stddef.h>
 
 extern "C" {
     void __rtc_irq_handler();

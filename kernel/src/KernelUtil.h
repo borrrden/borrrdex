@@ -17,6 +17,13 @@
 #define MIN(arg1,arg2) ((arg1) > (arg2) ? (arg2) : (arg1))
 #define MAX(arg1,arg2) ((arg1) > (arg2) ? (arg1) : (arg2))
 
+typedef struct {          
+    uint32_t  d1;
+    uint16_t  d2;
+    uint16_t  d3;
+    uint8_t   d4[8]; 
+} guid_t;
+
 struct BootInfo {
 	Framebuffer* framebuffer;
 	PSF1_FONT* psf1_font;

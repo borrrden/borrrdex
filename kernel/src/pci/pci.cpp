@@ -8,7 +8,27 @@
 #include "drivers/modules.h"
 #include "Panic.h"
 
-#include <cstddef>
+#include <stddef.h>
+
+template<typename T>
+const char* binary_search(DeviceTypeEntry<T> list[], T lookup, size_t start,size_t end) {
+    if(start == end) {
+        return list[start].hash == lookup ? list[start].val : nullptr;
+    }
+
+    size_t size = start + (end - start) / 2;
+    if(list[size].hash == lookup) {
+        return list[size].val;
+    }
+
+    if(list[size].hash > lookup) {
+        end = size - 1;
+    } else {
+        start = size + 1;
+    }
+
+    return binary_search(list, lookup, start, end);
+}
 
 inline bool pci_device_exists(pci_header_t* h) {
     return h->device_id != 0xffff && h->device_id != 0;
@@ -40,8 +60,6 @@ static void pci_init_bus(void* base) {
     for(int i = 0; i < 0x100; i++) {
         KernelPageTableManager()->MapMemory((void *)((uint64_t)base + i * 0x1000), (void *)((uint64_t)base + i * 0x1000), false);
     }
-
-    pci_print_bus(base, 0);
 
     uint64_t baseAddr = (uint64_t)base;
     for(int i = 0; i < 32; i++, baseAddr += 0x8000) {
@@ -110,26 +128,6 @@ void pci_print_bus(void *, uint8_t);
 
 inline constexpr uint32_t do_hash(uint8_t cls, uint8_t subclass, uint8_t progif) {
     return ((uint32_t)cls << 16) | ((uint32_t)subclass << 8) | progif;
-}
-
-template<typename T>
-static const char* binary_search(DeviceTypeEntry<T> list[], T lookup, size_t start,size_t end) {
-    if(start == end) {
-        return list[start].hash == lookup ? list[start].val : nullptr;
-    }
-
-    size_t size = start + (end - start) / 2;
-    if(list[size].hash == lookup) {
-        return list[size].val;
-    }
-
-    if(list[size].hash > lookup) {
-        end = size - 1;
-    } else {
-        start = size + 1;
-    }
-
-    return binary_search(list, lookup, start, end);
 }
 
 const char* pci_get_classname(pci_header_t* h) {

@@ -5,7 +5,7 @@
 #endif
 
 #include "drivers/disk.h"
-#include <cstdint>
+#include <stdint.h>
 
 constexpr uint8_t IDE_CHANNELS_PER_CTRL     = 0x2;
 constexpr uint8_t IDE_DEVICES_PER_CHANNEL   = 0x2;
