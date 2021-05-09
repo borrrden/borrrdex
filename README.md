@@ -1,0 +1,1 @@
+Borrrdex is a UNIX-like 64-bit operating system written in C++.  It is shamelessly based on a handful of other OS and so more often than not any file you see will be either a modified copy or an imitation.  A list of these can be found in [FORK-LICENSE](./FORK-LICENSE)

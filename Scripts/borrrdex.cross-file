@@ -1,0 +1,15 @@
+[binaries]
+c = 'borrrdex-clang'
+cpp = 'borrrdex-clang++'
+ar = 'x86_64-borrrdex-ar'
+strip = 'x86_64-borrrdex-strip'
+ld = 'x86_64-lemon-ld'
+
+[host_machine]
+system = 'borrrdex'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[paths]
+prefix = '~/.local/share/borrrdex/sysroot/system'

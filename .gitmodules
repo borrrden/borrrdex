@@ -1,0 +1,6 @@
+[submodule "LibC"]
+	path = LibC
+	url = https://github.com/borrrden/mlibc
+[submodule "Kernel/src/lai"]
+	path = Kernel/src/lai
+	url = https://github.com/managarm/lai

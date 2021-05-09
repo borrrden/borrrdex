@@ -1,0 +1,8 @@
+label: gpt
+label-id: 2f9bff4b-ea77-40a3-96f0-8f2fffdcc8ae
+unit: sectors
+first-lba: 2048
+last-lba: 2096606
+start=      2048, size=     2048, type=21686148-6449-6E6F-744E-656564454649, uuid=c80c2bff-c4fe-4ffa-bb60-93dd93ce0c55
+start=      4096, size=  1828864, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=dda25fe2-80c5-4275-831b-66ff92cdea94
+start=   1832960, size=   262144, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=ff03315f-8074-4649-8291-f2c7b2d44f0a

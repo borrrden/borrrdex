@@ -1,0 +1,11 @@
+Disks/
+Toolchain/binutils-*/
+Toolchain/llvm-project
+Toolchain/limine-*/
+
+Ports/freetype-*/
+Ports/libpng-*/
+Ports/libressl-*/
+Ports/zlib-*/
+
+build/

@@ -1,0 +1,34 @@
+project(lai)
+cmake_minimum_required(VERSION 3.10)
+
+set(
+    LAI_SRC_FILES
+    core/error.c
+    core/eval.c
+    core/exec.c
+    core/exec-operand.c
+    core/libc.c
+    core/ns.c
+    core/object.c
+    core/opregion.c
+    core/os_methods.c
+    core/variable.c
+    core/vsnprintf.c
+    helpers/pc-bios.c
+    helpers/pci.c
+    helpers/resource.c
+    helpers/sci.c
+    helpers/pm.c
+    drivers/ec.c
+    drivers/timer.c
+)
+
+add_library(
+    lai STATIC
+    ${LAI_SRC_FILES}
+)
+
+target_include_directories(
+    lai PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
