@@ -229,6 +229,16 @@ namespace memory {
         return address;
     }
 
+    uintptr_t get_io_mapping(uintptr_t addr) {
+        // Typically most MMIO will not reside > 4GB, but check just in case
+        if(addr > 0xFFFFFFFF) {
+            log::error("MMIO >4GB not supported");
+            return 0xFFFFFFFF;
+        }
+
+        return addr + IO_VIRTUAL_BASE;
+    }
+
     bool check_kernel_pointer(uintptr_t addr, uint64_t len) {
         if(PML4_GET_INDEX(addr) != PML4_GET_INDEX(KERNEL_VIRTUAL_BASE)) {
             return false;

@@ -1,5 +1,5 @@
 #include <logging.h>
-#include <string.h>
+#include <kstring.h>
 #include <serial.h>
 
 constexpr uint16_t LADJUST =	0x0004;		/* left adjustment */

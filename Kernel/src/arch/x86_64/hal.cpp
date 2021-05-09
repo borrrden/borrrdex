@@ -8,6 +8,9 @@
 #include <debug.h>
 #include <kstring.h>
 #include <video/video.h>
+#include <acpi/acpi.h>
+#include <kpci.h>
+#include <apic.h>
 
 extern void* _end;
 
@@ -48,6 +51,23 @@ static void init_video() {
 
     video::initialize(hal::video_mode, hal::font);
     video::draw_string("Starting Borrrdex x64...", 0, 0, 255, 255, 255);
+}
+
+static void init_extra() {
+    log::info("Initializing ACPI...");
+    acpi::initialize();
+    log::write("OK");
+
+    log::info("Initializing PCI...");
+    pci::initialize();
+    log::write("OK");
+
+    log::info("Initializing Local and I/O APIC...");
+    if(apic::initialize() != 0) {
+        log::write("FAIL");
+    } else {
+        log::write("OK");
+    }
 }
 
 #define PAGE_COUNT_OF(x) (((x) + memory::PAGE_SIZE_4K - 1) / memory::PAGE_SIZE_4K)
@@ -121,6 +141,8 @@ void hal::init_stivale2(stivale2_info_header_t* st2_info) {
                 break;
             } case stivale2::TAG_ACPI_RSDP: {
                 stivale2_tag_rsdp_t* rsdp_tag = reinterpret_cast<stivale2_tag_rsdp_t *>(tag_phys);
+                acpi::set_rsdp(reinterpret_cast<acpi_xsdp_t *>(rsdp_tag->rsdp));
+                break;
             } default:
                 break;
         }
@@ -142,13 +164,14 @@ void hal::init_stivale2(stivale2_info_header_t* st2_info) {
     asm("sti");
 
     init_video();
+    init_extra();
 }
+
+extern "C" void kmain();
 
 extern "C" 
 [[noreturn]] void kinit_stivale2(stivale2_info_header_t* st2_info) {
     hal::init_stivale2(st2_info);
 
-    while(true) {
-        asm volatile("hlt");
-    }
+    kmain();
 }

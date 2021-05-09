@@ -3,7 +3,9 @@
 #include <stddef.h>
 
 extern "C" {
-    void memset(void* dst, int c, size_t n);
+    void* memset(void* dst, int c, size_t n);
+    void* memcpy(void* __restrict dest, const void* __restrict src, size_t n);
+    __attribute__((pure)) int memcmp(const void* aptr, const void* bptr, size_t n);
 
     int strcmp(const char *a, const char *b);
     char* strncpy(char* dst, const char* src, size_t max);

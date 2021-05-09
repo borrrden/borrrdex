@@ -40,5 +40,7 @@ namespace idt {
 
     void register_interrupt_handler(uint8_t interrupt, isr_t handler, void* data = nullptr);
 
+    void disable_pic();
+
     int get_err_code();
 }

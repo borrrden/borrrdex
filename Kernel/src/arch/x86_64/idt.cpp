@@ -237,6 +237,26 @@ void idt::register_interrupt_handler(uint8_t interrupt, isr_t handler, void* dat
     interrupt_handlers[interrupt] = { .handler = handler, .data = data };
 }
 
+void idt::disable_pic() {
+    // Same as init, but remap to 0xF0 - 0xF8 for both, then mask everything
+
+    uint8_t icw = PIC_ICW1_MASK_INIT | PIC_ICW1_MASK_IC4;
+    port_write_8(PIC0_COMMAND_REGISTER, icw);
+    port_write_8(PIC1_COMMAND_REGISTER, icw);
+    port_write_8(PIC0_INT_MASK_REGISTER, 0xF0);
+    port_write_8(PIC1_INT_MASK_REGISTER, 0xF0);
+    port_write_8(PIC0_INT_MASK_REGISTER, 0x04);
+    port_write_8(PIC1_INT_MASK_REGISTER, 0x02);
+    port_write_8(PIC0_INT_MASK_REGISTER, PIC_ICW4_MASK_UPM);
+    port_write_8(PIC1_INT_MASK_REGISTER, PIC_ICW4_MASK_UPM);
+    port_write_8(PIC0_INT_MASK_REGISTER, 0xFF);
+    port_write_8(PIC1_INT_MASK_REGISTER, 0xFF);
+
+    // Needed on some systems, so do it just in case
+    port_write_8(io::CHIPSET_ADDRESS_REGISTER, io::IMCR_REGISTER_ADDRESS);
+    port_write_8(io::CHIPSET_DATA_REGISTER, io::IMCR_VIA_APIC);
+}
+
 int idt::get_err_code() {
     return last_err_code;
 }

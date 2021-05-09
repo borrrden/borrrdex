@@ -72,15 +72,19 @@ add_executable(
     src/arch/x86_64/panic.cpp
     src/arch/x86_64/paging.cpp
     src/arch/x86_64/physical_allocator.cpp
+    src/arch/x86_64/kpci.cpp
     src/arch/x86_64/timer.cpp
     src/arch/x86_64/debug.cpp
     src/arch/x86_64/acpi/acpi.cpp
+    src/arch/x86_64/kcpuid.asm
+    src/arch/x86_64/kcpuid.cpp
     src/video/video.cpp
     src/liballoc/liballoc.c
     src/liballoc/liballoc_internal.cpp
     src/logging.cpp
     src/kstring.cpp
     src/kassert.cpp
+    src/kernel.cpp
 )
 
 target_compile_options(

@@ -89,6 +89,8 @@ namespace memory {
 
     uint64_t virtual_to_physical_addr(uint64_t addr);
 
+    uintptr_t get_io_mapping(uintptr_t addr);
+
     inline void set_page_frame(uint64_t* page, uint64_t addr) {
         *page = (*page & ~PAGE_FRAME) | (addr & PAGE_FRAME);
     }

@@ -8,6 +8,7 @@
 #include <paging.h>
 #include <physical_allocator.h>
 #include <liballoc/liballoc.h>
+#include <panic.h>
 
 lock_t alloc_lock;
 
@@ -59,4 +60,8 @@ extern "C" {
 
 void operator delete(void* addr) {
     free(addr);
+}
+
+void* operator new(unsigned long size) {
+    return malloc(size);
 }

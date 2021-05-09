@@ -382,7 +382,7 @@ void *malloc(size_t size)
     #ifdef KERNEL_DEBUG
     l_inuse += size;
     liballoc_kprintf("malloc: %x,  %i, %i\n", ptr, (int)l_inuse / 1024, (int)l_allocated / 1024 );
-    dump_array();
+    //dump_array();
     #endif
 
 
@@ -461,7 +461,7 @@ void free(void *ptr)
                 #ifdef KERNEL_DEBUG
                 l_allocated -= pages * l_pageSize;
                 liballoc_kprintf("Resource freeing %x of %i pages\n", tag, pages );
-                dump_array();
+                //dump_array();
                 #endif
 
                 liballoc_unlock();
@@ -480,7 +480,7 @@ void free(void *ptr)
 
     #ifdef KERNEL_DEBUG
     liballoc_kprintf("Returning tag with %i bytes (requested %i bytes), which has exponent: %i\n", tag->real_size, tag->size, index ); 
-    dump_array();
+    //dump_array();
     #endif
 
     liballoc_unlock();

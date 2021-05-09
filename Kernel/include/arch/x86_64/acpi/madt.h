@@ -94,12 +94,12 @@ namespace ioapic {
 typedef struct {
     uint8_t type;
     uint8_t length;
-} int_controller_header_t;
+} madt_entry_t;
 
 // The Processor Local APIC entries in MADT
 // ACPI 6.4 p.172
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t acpi_uid;
     uint8_t apic_id;
     uint32_t flags;
@@ -108,7 +108,7 @@ typedef struct {
 // The I/O APIC entry in MADT
 // ACPI 6.4 p.173
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t apic_id;
     uint8_t reserved;
     uint32_t apic_address;
@@ -118,7 +118,7 @@ typedef struct {
 // The interrupt source override entry in MADT
 // ACPI 6.4 p.174
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t bus; // Always 0 (ISA)
     uint8_t source;
     uint32_t global_interrupt;
@@ -129,7 +129,7 @@ typedef struct {
 // for each of the processors that such a connection exists
 // ACPI 6.4 p.176
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t acpi_uid;
     uint16_t flags;
     uint8_t lint_number;
@@ -140,7 +140,7 @@ typedef struct {
 // table header, which is defined as a 32-bit field
 // ACPI 6.4 p.176
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint16_t reserved;
     uint64_t local_apic_addr;
 } __attribute__((packed)) local_apic_addr_ovr_t;
@@ -150,7 +150,7 @@ typedef struct {
 // the information in the I/O SAPIC structure must be used.
 // ACPI 6.4 p.177
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t io_apic_id;
     uint8_t reserved;
     uint32_t global_int_base;
@@ -162,7 +162,7 @@ typedef struct {
 // to have a Processor Local SAPIC record in the MADT, anda processor device object in the DSDT.
 // ACPI 6.4 p.177
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint8_t acpi_proc_id;
     uint8_t local_sapic_id;
     uint8_t local_sapic_eid;
@@ -176,7 +176,7 @@ typedef struct {
 // which I/O SAPIC interrupt inputs are connected to
 // the platform interrupt sources.
 typedef struct {
-    int_controller_header_t h;
+    madt_entry_t h;
     uint16_t flags;
     uint8_t int_type;
     uint8_t proc_id;
