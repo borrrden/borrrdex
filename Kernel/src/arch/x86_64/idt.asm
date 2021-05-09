@@ -47,7 +47,7 @@ section .text
 %endmacro
 
 idt_flush:
-    lidt[idt_ptr]
+    lidt [idt_ptr]
     ret
 
 %macro ISR_ERROR_CODE 1

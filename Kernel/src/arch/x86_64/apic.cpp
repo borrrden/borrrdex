@@ -74,6 +74,10 @@ namespace apic {
         uint32_t interrupts;
         uint32_t apic_id;
 
+        constexpr uint32_t IO_APIC_RED_TABLE_ENT(uint8_t input) {
+            return 0x10 + 2 * input;
+        }
+
         void set_base(uintptr_t new_base) {
             base = new_base;
         }
@@ -83,8 +87,21 @@ namespace apic {
             return *io_window;
         }
 
-        void redirect(uint8_t irq, uint8_t vector, uint32_t delivery) {
+        void write32(uint32_t reg, uint32_t val) {
+            *register_select = reg;
+            *io_window = val;
+        }
 
+        void write64(uint32_t reg, uint64_t val) {
+            uint32_t low = val & 0xFFFFFFFF;
+            uint32_t high = val >> 32;
+
+            write32(reg, low);
+            write32(reg + 1, high);
+        }
+
+        void redirect(uint8_t irq, uint8_t vector, uint32_t delivery) {
+            write64(IO_APIC_RED_TABLE_ENT(irq), delivery | vector);
         }
 
         int initialize() {
