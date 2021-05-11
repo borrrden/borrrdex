@@ -8,4 +8,6 @@ const int debug_level_malloc = 0;
 
 const int debug_level_acpi = 0;
 
-const int debug_level_interrupts = 2;
+const int debug_level_interrupts = 0;
+
+const int debug_level_misc = 0;

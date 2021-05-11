@@ -72,6 +72,14 @@ namespace memory {
         return 0;
     }
 
+    uint64_t get_used_blocks() {
+        return used_blocks;
+    }
+
+    void reset_used_blocks() {
+        used_blocks = 0;
+    }
+
     void mark_memory_region_free(uint64_t base, size_t size) {
         uint32_t blocks_to_clear = (size + (PHYS_BLOCK_SIZE - 1)) / PHYS_BLOCK_SIZE;
         uint32_t align = base / PHYS_BLOCK_SIZE;

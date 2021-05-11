@@ -11,6 +11,7 @@
 #include <acpi/acpi.h>
 #include <kpci.h>
 #include <apic.h>
+#include <smp.h>
 
 extern void* _end;
 
@@ -21,6 +22,7 @@ namespace hal {
     boot_module_t boot_modules[128];
     int boot_module_count;
     bool debug_mode = false;
+    bool disable_smp = false;
 }
 
 static void init_core() {
@@ -68,6 +70,10 @@ static void init_extra() {
     } else {
         log::write("OK");
     }
+
+    log::info("Initializing SMP...");
+    smp::initialize();
+    log::write("OK");
 }
 
 #define PAGE_COUNT_OF(x) (((x) + memory::PAGE_SIZE_4K - 1) / memory::PAGE_SIZE_4K)
@@ -108,7 +114,7 @@ void hal::init_stivale2(stivale2_info_header_t* st2_info) {
                     }
                 }
 
-                memory::used_blocks = 0;
+                memory::reset_used_blocks();
                 break;
             } case stivale2::TAG_FRAMEBUFFER_INFO: {
                 stivale2_tag_framebuffer_info_t* fb_tag = reinterpret_cast<stivale2_tag_framebuffer_info_t *>(tag_phys);
@@ -155,6 +161,8 @@ void hal::init_stivale2(stivale2_info_header_t* st2_info) {
         while(cmd_line) {
             if(strcmp(cmd_line, "debug") == 0) {
                 debug_mode = true;
+            } else if(strcmp(cmd_line, "nosmp") == 0) {
+                disable_smp = true;
             }
 
             cmd_line = strtok(cmd_line, " ");
@@ -167,7 +175,27 @@ void hal::init_stivale2(stivale2_info_header_t* st2_info) {
     init_extra();
 }
 
-extern "C" void kmain();
+const memory_info_t* hal::get_mem_info() {
+    return &mem_info;
+}
+
+const video_mode_t* hal::get_video_mode() {
+    return &video_mode;
+}
+
+bool hal::is_debug_mode() {
+    return debug_mode;
+}
+
+bool hal::smp_disabled() {
+    return disable_smp;
+}
+
+const boot_module_t* hal::get_boot_modules() {
+    return boot_modules;
+}
+
+extern "C" [[noreturn]] void kmain();
 
 extern "C" 
 [[noreturn]] void kinit_stivale2(stivale2_info_header_t* st2_info) {

@@ -2,13 +2,15 @@ project(Kernel)
 cmake_minimum_required(VERSION 3.10)
 enable_language(ASM_NASM)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON) 
+
 if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 endif()
 
 set(
     KERNEL_C_FLAGS
-    -Wno-write-strings
     -Wno-unused-parameter
     -Wno-sign-compare
     -DBorrrdex64
@@ -78,15 +80,24 @@ add_executable(
     src/arch/x86_64/acpi/acpi.cpp
     src/arch/x86_64/kcpuid.asm
     src/arch/x86_64/kcpuid.cpp
+    src/arch/x86_64/smp.cpp
+    src/arch/x86_64/tss.cpp
+    src/arch/x86_64/tss.asm
     src/video/video.cpp
     src/liballoc/liballoc.c
     src/liballoc/liballoc_internal.cpp
+    src/fs/filesystem.cpp
+    src/fs/directory_entry.cpp
+    src/fs/fs_node.cpp
+    src/fs/fs_volume.cpp
+    src/fs/tar.cpp
     src/logging.cpp
     src/kstring.cpp
     src/kassert.cpp
     src/kernel.cpp
 )
 
+message(WARN ${KERNEL_CXX_FLAGS})
 target_compile_options(
     kernel PRIVATE
     $<$<COMPILE_LANGUAGE:C>:${KERNEL_C_FLAGS}>
@@ -111,7 +122,20 @@ target_include_directories(
     include/arch/x86_64
 )
 
+set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o PROPERTIES
+    EXTERNAL_OBJECT TRUE
+    GENERATED TRUE
+)
+
 target_link_libraries(
     kernel PRIVATE
     lai
+    ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o
+)
+
+add_custom_command(
+    TARGET kernel
+    PRE_BUILD
+    COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/bintoelf.sh ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/x86_64/smptrampoline.asm ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o ${CMAKE_CURRENT_SOURCE_DIR}/include/arch/x86_64/ smptrampoline
 )

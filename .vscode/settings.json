@@ -1,31 +1,5 @@
 {
     "files.associations": {
-        "initializer_list": "cpp",
-        "__hash_table": "cpp",
-        "__split_buffer": "cpp",
-        "__tree": "cpp",
-        "array": "cpp",
-        "bitset": "cpp",
-        "deque": "cpp",
-        "simd": "cpp",
-        "hash_map": "cpp",
-        "hash_set": "cpp",
-        "list": "cpp",
-        "map": "cpp",
-        "queue": "cpp",
-        "random": "cpp",
-        "set": "cpp",
-        "span": "cpp",
-        "stack": "cpp",
-        "unordered_map": "cpp",
-        "unordered_set": "cpp",
-        "utility": "cpp",
-        "valarray": "cpp",
-        "vector": "cpp",
-        "algorithm": "cpp",
-        "string_view": "cpp",
-        "ranges": "cpp",
-        "regex": "cpp",
-        "debug.h": "c"
+        "*.inc": "cpp"
     }
 }

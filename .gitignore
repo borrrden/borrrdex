@@ -8,4 +8,7 @@ Ports/libpng-*/
 Ports/libressl-*/
 Ports/zlib-*/
 
+Initrd/
+
 build/
+initrd.tar

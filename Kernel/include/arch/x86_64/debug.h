@@ -19,3 +19,4 @@ extern const int debug_level_hal;
 extern const int debug_level_malloc;
 extern const int debug_level_acpi;
 extern const int debug_level_interrupts;
+extern const int debug_level_misc;

@@ -166,6 +166,18 @@ namespace acpi {
     const list<int_source_override_t *>* int_source_overrides() {
         return isos;
     }
+
+    void disable_smp() {
+        processor_count = 1;
+    }
+
+    const uint8_t* get_processors() {
+        return processors;
+    }
+
+    int get_proc_count() {
+        return processor_count;
+    }
 }
 
 extern "C" {

@@ -118,8 +118,6 @@ extern "C" {
     void irq13();
     void irq14();
     void irq15();
-
-    void idt_flush();
 }
 
 extern uint64_t int_vectors[];

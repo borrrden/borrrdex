@@ -7,8 +7,14 @@
 #include <acpi/acpi.h>
 
 namespace apic {
+    constexpr uint8_t ICR_VECTOR(uint8_t input) {
+        return input & 0xFF;
+    }
+
     namespace local {
-        constexpr uint64_t LOCAL_APIC_SIVR = 0xF0; // Spurious Interrupt Vector Register
+        constexpr uint32_t LOCAL_APIC_SIVR      = 0xF0; // Spurious Interrupt Vector Register
+        constexpr uint32_t LOCAL_APIC_ICR_LOW   = 0x300; // Interrupt Command Register Low
+        constexpr uint32_t LOCAL_APIC_ICR_HIGH  = 0x310; // Interrupt Command Register High
 
         constexpr uint64_t LOCAL_APIC_BASE = 0xFFFFFFFFFF000;
 
@@ -44,6 +50,14 @@ namespace apic {
             return *((volatile uint32_t *)(virtual_base + off));
         }
 
+        void send_ipi(uint8_t apic_id, uint32_t dsh, uint32_t type, uint8_t vector) {
+            uint32_t high = ((uint32_t)apic_id) << 24;
+            uint32_t low = dsh | type | ICR_VECTOR(vector);
+
+            write(LOCAL_APIC_ICR_HIGH, high);
+            write(LOCAL_APIC_ICR_LOW, low);
+        }
+
         int initialize() {
             base = read_base() & LOCAL_APIC_BASE;
             virtual_base = memory::get_io_mapping(base);
@@ -62,8 +76,6 @@ namespace apic {
 
         constexpr uint8_t IO_APIC_REGISTER_ID   = 0x00; // ID Register
         constexpr uint8_t IO_APIC_REGISTER_VER  = 0x01; // Version Register
-
-        constexpr uint32_t ICR_MESSAGE_TYPE_LOW_PRIORITY = 1 << 8;
 
         uintptr_t base = 0;
         uintptr_t virtual_base;

@@ -18,4 +18,8 @@ namespace acpi {
 
     const mcfg_t* get_mcfg();
     const list<int_source_override_t *>* int_source_overrides();
+
+    int get_proc_count();
+    const uint8_t* get_processors();
+    void disable_smp();
 }

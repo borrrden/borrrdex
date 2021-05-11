@@ -77,3 +77,30 @@ constexpr uint8_t GDT_SELECTOR_KERNEL_CODE  = (0x01 << 3);
 constexpr uint8_t GDT_SELECTOR_KERNEL_DATA  = (0x02 << 3);
 constexpr uint8_t GDT_SELECTOR_USER_CODE    = (0x05 << 3);
 constexpr uint8_t GDT_SELECTOR_USER_DATA    = (0x04 << 3);
+
+typedef struct gdt_descriptor {
+    uint16_t limit;         ///< [Unused for 64-bit] The descriptor size (bits 0 - 15)
+    uint16_t base_low;      ///< [Unused for 64-bit] The descriptor memory address (bits 0 -15)
+    uint8_t base_mid;       ///< [Unused for 64-bit] The descriptor memory address (bits 16 - 23)
+    uint8_t flags;          ///< The access flags (see GDT_DESC_*)
+    uint8_t granularity;    ///< The remaining flags (see GDT_GRAN_*), and [unused for 64-bit] The descriptor size (bits 16 - 19)
+    uint8_t base_high;      ///< [Unused for 64-bit] The descriptor memory address (bits 24 - 31)
+} __attribute__((packed)) gdt_desc_t;
+
+typedef struct gdt_system_descriptor {
+    uint16_t limit_0;
+    uint16_t addr_0;
+    uint8_t addr_1;
+    uint8_t type_0;
+    uint8_t limit_1;
+    uint8_t addr_2;
+    uint32_t addr_3;
+    uint32_t reserved;
+} __attribute__((packed)) gdt_system_desc_t;
+
+// Basically, this structure is an array of the above,
+// defined as a block of memory
+typedef struct gdt {
+    uint16_t limit;         ///< The size in memory of all the gdt_desc_t entries (laid out sequentially)
+    uint64_t base;          ///< The memory address of the first gdt_desc_t entry 
+} __attribute__((packed)) gdt_t;

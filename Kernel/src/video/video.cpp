@@ -1,4 +1,6 @@
 #include <video/video.h>
+#include <logging.h>
+#include <kmath.h>
 
 uint8_t default_font[128][8] = {
     { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },   // U+0000 (nul)
@@ -131,6 +133,14 @@ uint8_t default_font[128][8] = {
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }    // U+007F
 };
 
+// https://docs.fileformat.com/image/bmp/
+typedef struct {
+    char magic[2];
+    uint32_t size;
+    uint32_t reserved;
+    uint32_t offset;
+} __attribute__((packed)) bitmap_file_header_t;
+
 namespace video {
     video_mode_t video_mode;
     uint8_t* video_memory = nullptr;
@@ -197,6 +207,33 @@ namespace video {
 
             x_off += 8;
             str++;
+        }
+    }
+
+    void draw_bitmap(unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint8_t *data) {
+        bitmap_file_header_t* bmp_header = (bitmap_file_header_t *)data;
+        if(bmp_header->magic[0] != 'B' || bmp_header->magic[1] != 'M') {
+            log::warning("Invalid bitmap requested to be drawn!");
+            return;
+        }
+
+        data += bmp_header->offset;
+        uint8_t bpp = 24;
+        uint32_t row_size = (bpp * w + 31) / 32 * 4;
+        uint32_t bmp_offset = row_size * (h - 1);
+        uint32_t buffer_offset = 0;
+
+        uint32_t pixel_size = 4;
+        for(unsigned i = 0; i < h && i + y < video_mode.height; i++) {
+            for(unsigned j = 0; j < w && j + x < video_mode.width; j++) {
+                uint32_t offset = (y + i) * (video_mode.width * pixel_size) + (x + j) * pixel_size;
+                video_memory[offset] = data[bmp_offset + j * (bpp / 8)];
+                video_memory[offset + 1] = data[bmp_offset + j * (bpp / 8) + 1];
+                video_memory[offset + 2] = data[bmp_offset + j * (bpp / 8) + 2];
+            }
+
+            bmp_offset -= row_size;
+            buffer_offset += w * pixel_size;
         }
     }
 

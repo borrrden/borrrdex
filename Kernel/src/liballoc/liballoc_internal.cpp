@@ -65,3 +65,12 @@ void operator delete(void* addr) {
 void* operator new(unsigned long size) {
     return malloc(size);
 }
+
+void* operator new[](unsigned long size) {
+    return malloc(size);
+}
+
+extern "C" void __cxa_pure_virtual() { 
+    const char* reasons[] = { "Pure virtual function call!" };
+    kernel_panic(reasons, 1);
+}

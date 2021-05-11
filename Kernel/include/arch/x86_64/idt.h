@@ -35,6 +35,8 @@ typedef struct id_table {
 
 typedef void(*isr_t)(void*, register_context*);
 
+extern "C" void idt_flush();
+
 namespace idt {
     void initialize();
 

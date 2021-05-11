@@ -8,6 +8,7 @@ extern "C" {
     __attribute__((pure)) int memcmp(const void* aptr, const void* bptr, size_t n);
 
     int strcmp(const char *a, const char *b);
+    int strncmp(const char *a, const char *b, size_t max);
     char* strncpy(char* dst, const char* src, size_t max);
     size_t strnlen(const char*, size_t);
     char* strtok(char* __restrict str, const char* __restrict delim);

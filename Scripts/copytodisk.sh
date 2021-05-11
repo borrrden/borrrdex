@@ -15,6 +15,7 @@ fi
 echo "Mounting ${DEVICE} on /mnt/borrrdex..."
 sudo mount $DEVICE /mnt/borrrdex
 
+sudo cp initrd.tar /mnt/borrrdex/borrrdex/initrd.tar
 sudo cp Kernel/build/kernel.elf /mnt/borrrdex/borrrdex/kernel.elf
 sudo cp -ru $HOME/.local/share/borrrdex/sysroot/system/* /mnt/borrrdex
 sudo cp -ru Base/* /mnt/borrrdex

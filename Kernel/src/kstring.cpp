@@ -76,6 +76,24 @@ extern "C" {
         }
     }
 
+    int strncmp(const char *a, const char *b, size_t max) {
+        size_t i = 0;
+        while(max--) {
+            unsigned char a_byte = a[i];
+            unsigned char b_byte = b[i];
+            if(!a_byte && !b_byte)
+                return 0;
+            // If only one char is null, one of the following cases applies.
+            if(a_byte < b_byte)
+                return -1;
+            if(a_byte > b_byte)
+                return 1;
+            i++;
+        }
+
+        return 0;
+    }
+
     constexpr size_t ALIGN = sizeof(size_t) - 1;
     constexpr size_t ONES = (size_t)-1/UCHAR_MAX;
     constexpr size_t HIGHS = ONES * (UCHAR_MAX/2+1);
