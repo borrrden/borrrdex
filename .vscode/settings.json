@@ -1,5 +1,37 @@
 {
     "files.associations": {
-        "*.inc": "cpp"
-    }
+        "*.inc": "cpp",
+        "utility": "cpp",
+        "__functional_03": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "algorithm": "cpp",
+        "deque": "cpp",
+        "memory_resource": "cpp",
+        "hash_map": "cpp",
+        "forward_list": "cpp",
+        "functional": "cpp",
+        "future": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "memory": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "__sso_allocator": "cpp",
+        "scoped_allocator": "cpp",
+        "*.tcc": "cpp",
+        "new": "cpp"
+    },
+    "C_Cpp.default.includePath": [
+        "Kernel/include", 
+        "Kernel/include/arch/x86_64", 
+        "LibC/sysdeps/borrrdex/include",
+        "LibC/subprojects/frigg/include",
+        "LibC/options/posix/include",
+        "LibC/options/ansi/include",
+        "LibC/options/internal/include",
+        "Kernel/src/lai/include"
+    ]
 }

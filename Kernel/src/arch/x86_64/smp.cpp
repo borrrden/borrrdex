@@ -95,7 +95,7 @@ namespace smp {
     }
 
     void initialize() {
-         uint64_t rax = 1, rbx, rcx, rdx;
+        uint64_t rax = 1, rbx, rcx, rdx;
         _cpuid(&rax, &rbx, &rcx, &rdx);
         uint8_t bspid = (rbx >> 24) & 0xFF;
 

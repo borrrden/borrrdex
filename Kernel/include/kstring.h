@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 extern "C" {
     void* memset(void* dst, int c, size_t n);
@@ -14,6 +15,8 @@ extern "C" {
     char* strtok(char* __restrict str, const char* __restrict delim);
     char* strtok_r(char* __restrict str, const char* __restrict delim, char** __restrict saveptr);
     char *strchr(const char *s, int c);
+    char* strdup(const char* s);
 
     char* itoa(unsigned long long num, char* str, int base);
+    int hex_to_pointer(const char* buffer, size_t buffer_size, uintptr_t& ptr);
 }

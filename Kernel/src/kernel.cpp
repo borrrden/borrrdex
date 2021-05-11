@@ -9,6 +9,9 @@
 #include <panic.h>
 #include <hal.h>
 #include <liballoc/liballoc.h>
+#include <symbols.h>
+
+const char* version = "Borrrdex x86_64";
 
 typedef void (*ctor_t)(void);
 extern ctor_t _ctors_start[0];
@@ -68,7 +71,19 @@ extern "C" [[noreturn]] void kmain() {
         }
 
         free(buf);
+    } else {
+        log::warning("Splash image not found in initrd!");
     }
+
+    fs::fs_node* symbol_file = fs::find_dir(initrd, "kernel.map");
+    if(!symbol_file) {
+        kernel_panic((const char*[]){"Symbol file not found!"}, 1);
+        __builtin_unreachable();
+    }
+
+    load_symbols(symbol_file);
+    video::draw_string("Copyright 2021 Jim Borden", 2, video_mode.height - 20, 255, 255, 255);
+    video::draw_string(version, 2, video_mode.height - 40, 255, 255, 255);
 
     while(true) {
         asm("hlt");

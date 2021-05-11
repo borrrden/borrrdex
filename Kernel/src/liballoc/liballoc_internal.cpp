@@ -62,6 +62,10 @@ void operator delete(void* addr) {
     free(addr);
 }
 
+void operator delete(void* address, size_t size) {
+    operator delete(address);
+}
+
 void* operator new(unsigned long size) {
     return malloc(size);
 }

@@ -80,6 +80,7 @@ add_executable(
     src/arch/x86_64/acpi/acpi.cpp
     src/arch/x86_64/kcpuid.asm
     src/arch/x86_64/kcpuid.cpp
+    src/arch/x86_64/symbols.cpp
     src/arch/x86_64/smp.cpp
     src/arch/x86_64/tss.cpp
     src/arch/x86_64/tss.asm
@@ -97,7 +98,6 @@ add_executable(
     src/kernel.cpp
 )
 
-message(WARN ${KERNEL_CXX_FLAGS})
 target_compile_options(
     kernel PRIVATE
     $<$<COMPILE_LANGUAGE:C>:${KERNEL_C_FLAGS}>
@@ -120,6 +120,7 @@ target_include_directories(
     kernel PRIVATE
     include
     include/arch/x86_64
+    ../LibC/subprojects/frigg/include
 )
 
 set_source_files_properties(

@@ -3,6 +3,7 @@
 #include <kassert.h>
 #include <limits.h>
 #include <string.h>
+#include <liballoc/liballoc.h>
 
 static void reverse(char* str, size_t length) {
     char* end = str + length - 1;
@@ -176,7 +177,19 @@ extern "C" {
     char *strtok(char *__restrict s, const char *__restrict delimiter) {
         static char *saved;
         return strtok_r(s, delimiter, &saved);
-    }                                                       
+    }
+
+    char* strdup(const char* s) {
+        auto num_bytes = strnlen(s, 1024);
+
+        char *new_string = (char *)malloc(num_bytes + 1);
+        if(!new_string) // TODO: set errno
+            return nullptr;
+
+        memcpy(new_string, s, num_bytes);
+        new_string[num_bytes] = 0;
+        return new_string;
+    }
 
     char* itoa(unsigned long long num, char* str, int base) {
         int i = 0;
@@ -195,5 +208,26 @@ extern "C" {
         str[i] = 0;
         reverse(str, i);
         return str;
+    }
+
+    int hex_to_pointer(const char* buffer, size_t buffer_size, uintptr_t& ptr) {
+        size_t n = 0;
+        ptr = 0;
+
+        while(*buffer && n++ < buffer_size) {
+            char c = *buffer++;
+            ptr <<= 4;
+            if(c >= '0' && c <= '9') {
+                ptr |= (c - '0') & 0xF;
+            } else if(c >= 'a' && c <= 'f') {
+                ptr |= (c - 'a' + 0xA) & 0xF;
+            } else if(c >= 'A' && c <= 'F') {
+                ptr |= (c - 'A' + 0xA) & 0xF;
+            } else {
+                return 1;
+            }
+        }
+
+        return 0;
     }
 }

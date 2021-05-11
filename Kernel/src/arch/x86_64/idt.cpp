@@ -268,10 +268,10 @@ extern "C" {
         } else if(!(regs->ss & 0x3)) {
             // This happened while in the kernel
             log::error("Fatal Kernel Exception: %d", int_num);
-            log::info("RIP: 0x%x", regs->rip);
+            log::info("RIP: 0x%llx", regs->rip);
             log::info("Error Code: %d", err_code);
-            log::info("Register Dump: a: 0x%x, b: 0x%x, c: 0x%x, d: 0x%x", regs->rax, regs->rbx, regs->rcx, regs->rdx);
-            log::info("               S: 0x%x, D: 0x%x, sp: 0x%x, bp: 0x%x", regs->rsi, regs->rdi, regs->rsp, regs->rbp);
+            log::info("Register Dump: a: 0x%016llx, b: 0x%016llx, c: 0x%016llx, d: 0x%016llx", regs->rax, regs->rbx, regs->rcx, regs->rdx);
+            log::info("               S: 0x%016llx, D: 0x%016llx, sp: 0x%016llx, bp: 0x%016llx", regs->rsi, regs->rdi, regs->rsp, regs->rbp);
             log::info("Stack Trace:");
             print_stack_trace(regs->rbp);
 

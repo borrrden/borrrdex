@@ -23,9 +23,9 @@ static void page_fault_handler(void*, register_context* regs) {
     asm("cli");
 
     log::error("page fault");
-    log::info("Register Dump:\nrip:%x, rax: %x, rbx: %x, rcx: %x, rdx: %x, rsi: %x, rdi: %x, rsp: %x, rbp: %x",
+    log::info("Register Dump:\nrip:0x%016llx, rax: 0x%016llx, rbx: 0x%016llx, rcx: 0x%016llx, rdx: 0x%016llx, rsi: 0x%016llx, rdi: 0x%016llx, rsp: 0x%016llx, rbp: 0x%016llx",
                 regs->rip, regs->rax, regs->rbx, regs->rcx, regs->rdx, regs->rsi, regs->rdi, regs->rsp, regs->rbp);
-    log::info("Fault address: %x", fault_address);
+    log::info("Fault address: 0x%016llx", fault_address);
     if(present) {
         log::info("Page not present");
     }
