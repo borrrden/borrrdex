@@ -67,6 +67,7 @@ add_executable(
     src/arch/x86_64/entry.asm
     src/arch/x86_64/hal.cpp
     src/arch/x86_64/serial.cpp
+    src/arch/x86_64/elf.cpp
     src/arch/x86_64/io.cpp
     src/arch/x86_64/idt.asm
     src/arch/x86_64/idt.cpp
@@ -81,12 +82,17 @@ add_executable(
     src/arch/x86_64/kcpuid.asm
     src/arch/x86_64/kcpuid.cpp
     src/arch/x86_64/symbols.cpp
+    src/arch/x86_64/scheduler.cpp
+    src/arch/x86_64/scheduler.asm
     src/arch/x86_64/smp.cpp
     src/arch/x86_64/tss.cpp
     src/arch/x86_64/tss.asm
+    src/arch/x86_64/thread.cpp
     src/video/video.cpp
     src/liballoc/liballoc.c
     src/liballoc/liballoc_internal.cpp
+    src/mm/address_space.cpp
+    src/mm/vm_object.cpp
     src/fs/filesystem.cpp
     src/fs/directory_entry.cpp
     src/fs/fs_node.cpp

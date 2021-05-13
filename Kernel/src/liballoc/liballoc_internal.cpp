@@ -15,7 +15,7 @@ lock_t alloc_lock;
 extern "C" {
 
     int liballoc_lock() {
-        while(acquireTestLock(&alloc_lock)) {
+        while(acquire_test_lock(&alloc_lock)) {
             assert(check_interrupts());
         }
 
@@ -23,7 +23,7 @@ extern "C" {
     }
 
     int liballoc_unlock() {
-        releaseLock(&alloc_lock);
+        release_lock(&alloc_lock);
         return 0;
     }
 
@@ -59,6 +59,10 @@ extern "C" {
 }
 
 void operator delete(void* addr) {
+    free(addr);
+}
+
+void operator delete[](void* addr) {
     free(addr);
 }
 

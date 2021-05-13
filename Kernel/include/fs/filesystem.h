@@ -13,6 +13,7 @@ typedef int64_t volume_id_t;
 
 namespace fs {
     constexpr uint8_t NAME_MAX = 255;
+    constexpr uint16_t PATH_MAX = 4096;
 
     // Reused from ELF spec
     constexpr uint16_t S_IFMT   = 0xF000;

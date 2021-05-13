@@ -74,9 +74,12 @@ typedef struct {
     uint64_t pml4_phys;
 } __attribute__((packed)) page_map_t;
 
-class address_space;
 namespace memory {
+    class address_space;
     extern pml4_t kernel_pml4;
+
+    page_map_t* create_page_map();
+    void destroy_page_map(page_map_t* pm);
 
     void initialize_virtual_memory();
 
@@ -86,6 +89,8 @@ namespace memory {
     void kernel_free_4k_pages(void* addr, uint64_t amount);
 
     void kernel_map_virtual_memory_4k(uint64_t phys, uint64_t virt, uint64_t amount, uint64_t flags = TABLE_PRESENT|TABLE_WRITEABLE);
+    void map_virtual_memory_4k(uint64_t phys, uint64_t virt, uint64_t amount, 
+        page_map_t* map, uint64_t flags = TABLE_PRESENT|TABLE_WRITEABLE|PAGE_USER);
 
     uint64_t virtual_to_physical_addr(uint64_t addr);
 

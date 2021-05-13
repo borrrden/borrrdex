@@ -21,3 +21,4 @@ extern const int debug_level_acpi;
 extern const int debug_level_interrupts;
 extern const int debug_level_misc;
 extern const int debug_level_symbols;
+extern const int debug_user_mm;

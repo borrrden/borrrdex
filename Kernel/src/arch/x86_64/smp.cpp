@@ -106,7 +106,7 @@ namespace smp {
         set_cpu_local(cpus[0]);
 
         if(hal::smp_disabled()) {
-            tss::initialize_tss(&cpus[bspid]->tss, cpus[bspid]->gdt);
+            tss::initialize_tss(&cpus[0]->tss, cpus[0]->gdt);
             acpi::disable_smp();
             processor_count = 1;
             return;
@@ -123,7 +123,15 @@ namespace smp {
             }
         }
 
-        tss::initialize_tss(&cpus[bspid]->tss, cpus[bspid]->gdt);
+        tss::initialize_tss(&cpus[0]->tss, cpus[0]->gdt);
         log::info("[SMP] %u processors initialized!", processor_count);
+    }
+
+    unsigned get_proc_count() {
+        return processor_count;
+    }
+
+    cpu* get_cpu(unsigned index) {
+        return cpus[index];
     }
 }

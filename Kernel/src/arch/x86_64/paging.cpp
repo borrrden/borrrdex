@@ -5,6 +5,8 @@
 #include <logging.h>
 #include <kassert.h>
 #include <stacktrace.h>
+#include <physical_allocator.h>
+#include <liballoc/liballoc.h>
 
 constexpr uint16_t KERNEL_HEAP_PDPT_INDEX = 511;
 constexpr uint16_t KERNEL_HEAP_PML4_INDEX = 511;
@@ -73,6 +75,108 @@ namespace memory {
     page_dir_t kernel_heap_dir __attribute__((aligned(4096)));
     page_t kernel_heap_dir_tables[TABLES_PER_DIR][PAGES_PER_TABLE] __attribute__((aligned(4096)));
     page_dir_t io_dirs[4] __attribute__((aligned(4096)));
+
+    static page_table_t allocate_page_table() {
+        void* virt = kernel_allocate_4k_pages(1);
+        uint64_t phys = allocate_physical_block();
+        kernel_map_virtual_memory_4k(phys, (uintptr_t)virt, 1);
+
+        page_table_t table = { .phys = phys, .virt = (page_t *)virt };
+        for(int i = 0; i < PAGES_PER_TABLE; i++) {
+            ((page_t *)virt)[i] = 0;
+        }
+
+        return table;
+    }
+
+    static page_table_t create_page_table(uint16_t pdpt_index, uint16_t page_dir_index, page_map_t* map) {
+        page_table_t table = allocate_page_table();
+
+        set_page_frame(&(map->page_dirs[pdpt_index][page_dir_index]), table.phys);
+        map->page_dirs[pdpt_index][page_dir_index] |= TABLE_PRESENT | TABLE_WRITEABLE | PAGE_USER;
+        map->page_tables[pdpt_index][page_dir_index] = table.virt;
+
+        return table;
+    }
+
+    page_map_t* create_page_map() {
+        page_map_t* addr_space = (page_map_t *)malloc(sizeof(page_map_t));
+        pdpt_entry_t* pdpt = (pdpt_entry_t *)kernel_allocate_4k_pages(1);
+        uintptr_t pdpt_phys = allocate_physical_block();
+        kernel_map_virtual_memory_4k(pdpt_phys, (uintptr_t)pdpt, 1);
+
+        pd_entry_t** page_dirs = (pd_entry_t **)kernel_allocate_4k_pages(1);
+        kernel_map_virtual_memory_4k(memory::allocate_physical_block(), (uintptr_t)page_dirs, 1);
+        uint64_t* page_dirs_phys = (uint64_t *)kernel_allocate_4k_pages(1);
+        kernel_map_virtual_memory_4k(memory::allocate_physical_block(), (uintptr_t)page_dirs_phys, 1);
+        page_t*** page_tables = (page_t ***)kernel_allocate_4k_pages(1);
+        kernel_map_virtual_memory_4k(memory::allocate_physical_block(), (uintptr_t)page_tables, 1);
+
+        pml4_entry_t* pml4 = (pml4_entry_t *)kernel_allocate_4k_pages(1);
+        uintptr_t pml4_phys = allocate_physical_block();
+        kernel_map_virtual_memory_4k(pml4_phys, (uintptr_t)pml4, 1);
+        memcpy(pml4, kernel_pml4, PAGE_SIZE_4K);
+
+        for(int i = 0; i < 512; i++) {
+            page_dirs[i] = (pd_entry_t *)kernel_allocate_4k_pages(1);
+            page_dirs_phys[i] = allocate_physical_block();
+            kernel_map_virtual_memory_4k(page_dirs_phys[i], (uintptr_t)page_dirs[i], 1);
+
+            page_tables[i] = (page_t **)malloc(PAGE_SIZE_4K);
+            set_page_frame(&(pdpt[i]), page_dirs_phys[i]);
+            pdpt[i] = TABLE_WRITEABLE | TABLE_PRESENT | PDPT_USER;
+
+            memset(page_dirs[i], 0, PAGE_SIZE_4K);
+            memset(page_tables[i], 0, PAGE_SIZE_4K);
+        }
+
+        addr_space->page_dirs = page_dirs;
+        addr_space->page_dirs_phys = page_dirs_phys;
+        addr_space->page_tables = page_tables;
+        addr_space->pml4 = pml4;
+        addr_space->pml4_phys = pml4_phys;
+        addr_space->pdpt = pdpt;
+        addr_space->pdpt_phys = pdpt_phys;
+
+        pml4[0] = pdpt_phys | TABLE_PRESENT | TABLE_WRITEABLE | PAGE_USER;
+
+        return addr_space;
+    }
+
+    void destroy_page_map(page_map_t* pm) {
+        for(int i = 0; i < DIRS_PER_PDPT; i++) {
+            if(!pm->page_dirs[i]) {
+                continue;
+            }
+
+            if(pm->page_dirs_phys[i] < PHYS_BLOCK_SIZE) {
+                continue;
+            }
+
+            for(int j = 0; j < TABLES_PER_DIR; j++) {
+                pd_entry_t dir_ent = pm->page_dirs[i][j];
+                if(dir_ent & TABLE_PRESENT) {
+                    uint64_t phys = get_page_frame(dir_ent);
+                    if(phys < PHYS_BLOCK_SIZE) {
+                        continue;
+                    }
+
+                    free_physical_block(phys);
+                    kernel_free_4k_pages(pm->page_tables[i][j], 1);
+                }
+
+                pm->page_dirs[i][j] = 0;
+            }
+
+            free(pm->page_tables[i]);
+
+            pm->pdpt[i] = 0;
+            kernel_free_4k_pages(pm->page_dirs[i], 1);
+            free_physical_block(pm->page_dirs_phys[i]);
+        }
+
+        free_physical_block(pm->pdpt_phys);
+    }
 
     void initialize_virtual_memory() {
         idt::register_interrupt_handler(14, page_fault_handler);
@@ -205,6 +309,34 @@ namespace memory {
             kernel_heap_dir_tables[page_dir_index][page_index] = flags;
             set_page_frame(&(kernel_heap_dir_tables[page_dir_index][page_index]), phys);
             invlpg(virt);
+            phys += PAGE_SIZE_4K;
+            virt += PAGE_SIZE_4K;
+        }
+    }
+
+    void map_virtual_memory_4k(uint64_t phys, uint64_t virt, uint64_t amount, page_map_t* map, uint64_t flags) {
+        uint64_t pml4_index, pdpt_index, page_dir_index, page_index;
+        while(amount--) {
+            pml4_index = PML4_GET_INDEX(virt);
+            pdpt_index = PDPT_GET_INDEX(virt);
+            page_dir_index = PDE_GET_INDEX(virt);
+            page_index = PT_GET_INDEX(virt);
+
+            if(pdpt_index > MAX_PDPT_INDEX || pml4_index) {
+                const char* panic[1] = {"Process address space cannot be >512GB"};
+                kernel_panic(panic, 1);
+                __builtin_unreachable();
+            }
+
+            assert(map->page_dirs[pdpt_index]);
+            if(!(map->page_dirs[pdpt_index][page_dir_index] & TABLE_PRESENT)) {
+                create_page_table(pdpt_index, page_dir_index, map);
+            }
+
+            map->page_tables[pdpt_index][page_dir_index][page_index] = flags;
+            set_page_frame(&(map->page_tables[pdpt_index][page_dir_index][page_index]), phys);
+            invlpg(virt);
+
             phys += PAGE_SIZE_4K;
             virt += PAGE_SIZE_4K;
         }

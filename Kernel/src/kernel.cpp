@@ -10,6 +10,7 @@
 #include <hal.h>
 #include <liballoc/liballoc.h>
 #include <symbols.h>
+#include <scheduler.h>
 
 const char* version = "Borrrdex x86_64";
 
@@ -19,6 +20,17 @@ extern ctor_t _ctors_end[0];
 extern "C" void _init();
 
 video_mode_t video_mode;
+
+extern "C" void idle_process() {
+    while(true) {
+        asm("sti");
+        asm("hlt");
+    }
+}
+
+void kernel_process() {
+    idle_process();
+}
 
 static void initialize_constructors() {
     unsigned ctor_count = ((uint64_t)&_ctors_end - (uint64_t)&_ctors_start) / sizeof(void *);
@@ -85,6 +97,8 @@ extern "C" [[noreturn]] void kmain() {
     video::draw_string("Copyright 2021 Jim Borden", 2, video_mode.height - 20, 255, 255, 255);
     video::draw_string(version, 2, video_mode.height - 40, 255, 255, 255);
 
+    log::info("Initializing Task Scheduler...");
+    scheduler::initialize();
     while(true) {
         asm("hlt");
     }

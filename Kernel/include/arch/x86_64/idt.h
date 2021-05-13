@@ -16,6 +16,9 @@ constexpr uint8_t IDT_DESC_PRESENT  = 0x80; ///< Must be 1 on all valid entries
 
 constexpr uint8_t IRQ0              = 32;
 
+constexpr uint8_t IPI_HALT          = 0xFE;
+constexpr uint8_t IPI_SCHEDULE      = 0xFD;
+
 typedef struct idt_descriptor {
     uint16_t base_low;  ///< The interrupt handler's address (bits 0 - 15)
     uint16_t selector;  ///< The selector of the code segment this interrupt function is in (basically always GDT_SELECTOR_KERNEL_CODE)
@@ -45,4 +48,27 @@ namespace idt {
     void disable_pic();
 
     int get_err_code();
+
+    class with_interrupts {
+    public:
+        with_interrupts(bool enabled)
+            :_prev(check_interrupts()) {
+                set_interrupts(enabled);
+            }
+
+        ~with_interrupts() {
+            set_interrupts(_prev);
+        }
+
+    private:
+        void set_interrupts(bool enabled) {
+            if(enabled) {
+                asm("sti");
+            } else {
+                asm("cli");
+            }
+        }
+
+        bool _prev;
+    };
 }

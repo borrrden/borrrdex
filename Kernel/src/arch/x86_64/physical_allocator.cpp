@@ -90,7 +90,7 @@ namespace memory {
     }
 
     uint64_t allocate_physical_block() {
-        acquireLock(&allocator_lock);
+        acquire_lock(&allocator_lock);
 
         uint64_t index = get_first_free_block();
         if(!index) {
@@ -102,7 +102,7 @@ namespace memory {
 
         set_bit(index);
         used_blocks++;
-        releaseLock(&allocator_lock);
+        release_lock(&allocator_lock);
         return index << PHYS_BLOCK_SHIFT;
     }
 

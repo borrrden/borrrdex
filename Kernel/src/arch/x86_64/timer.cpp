@@ -2,6 +2,7 @@
 #include <kassert.h>
 #include <idt.h>
 #include <io.h>
+#include <scheduler.h>
 
 namespace timer {
     int frequency;
@@ -17,8 +18,7 @@ namespace timer {
         }
 
         pending_ticks++;
-
-        // TODO: scheduling
+        scheduler::tick(regs);
     }
 
     uint64_t get_system_uptime(timeval* t) {

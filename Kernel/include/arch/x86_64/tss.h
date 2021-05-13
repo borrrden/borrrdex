@@ -14,4 +14,8 @@ typedef struct {
 
 namespace tss {
     void initialize_tss(tss_t* tss, void* gdt);
+
+    inline void set_kernel_stack(tss_t* tss, uintptr_t stack) {
+        tss->rsp[0] = stack;
+    }
 }
