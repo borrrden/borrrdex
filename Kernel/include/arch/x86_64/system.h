@@ -25,6 +25,30 @@ struct register_context {
     uint64_t ss;
 };
 
+typedef struct {
+    uint8_t val[10];
+    uint8_t rsv[6];
+} mm_reg_t;
+
+static_assert(sizeof(mm_reg_t) == 16, "Incorrect mm_reg_t size");
+
+// Intel SDM Vol. 2A [Table 3-46.  Layout of the 64-bit-mode FXSAVE64 Map]
+typedef struct {
+    uint16_t fcw;           // FPU control word
+    uint16_t fsw;           // FPU status word
+    uint8_t ftw;            // FPU tag word
+    uint8_t rsv0;    
+    uint16_t fop;           // FPU opcode High 5 bits reserved
+    uint64_t fip;           // FPU instruction pointer
+    uint64_t fdp;           // FPU data pointer
+    uint32_t mxcsr;         // MXCSR register state
+    uint32_t mxcsr_mask;    // MXCSR register mask
+    uint16_t mm0[5];
+    uint32_t rsv1;
+    mm_reg_t mm[8];
+    uint64_t xmm[16];
+} __attribute__((packed)) fx_state_t;
+
 constexpr uint32_t EFLAGS_INTERRUPT_FLAG = 1 << 9;
 
 static inline bool check_interrupts() {

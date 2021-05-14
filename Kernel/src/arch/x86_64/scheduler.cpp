@@ -47,6 +47,7 @@ namespace scheduler {
             lock_t l(c->run_queue_lock);
             asm("cli");
             c->run_queue.push_back(thread);
+            c->run_queue_count++;
         }
         asm("sti");
     }
@@ -66,15 +67,21 @@ namespace scheduler {
         proc->pid = next_pid++;
 
         auto* thread = proc->threads.get(0);
-        thread->stack = 0;
+        memset(thread, 0, sizeof(threading::thread));
+        thread->priority = 1;
+        thread->time_slice_default = 1;
+        thread->time_slice = thread->time_slice_default;
         thread->state = threading::thread::thread_state::running;
         thread->parent = proc;
 
         register_context* regs = &thread->registers;
-        memset((uint8_t *)regs, 0, sizeof(register_context));
         regs->rflags = 0x202;
         regs->cs = GDT_SELECTOR_KERNEL_CODE;
         regs->ss = GDT_SELECTOR_KERNEL_DATA;
+
+        thread->fx_state = memory::kernel_allocate_4k_pages(1);
+        memory::kernel_map_virtual_memory_4k(memory::allocate_physical_block(), (uintptr_t)thread->fx_state, 1);
+        memset(thread->fx_state, 0, memory::PAGE_SIZE_4K);
 
         void* kernel_stack = memory::kernel_allocate_4k_pages(32);
         for(unsigned i = 0; i < 32; i++) {
@@ -85,13 +92,24 @@ namespace scheduler {
         memset(kernel_stack, 0, memory::PAGE_SIZE_4K * 32);
         thread->kernel_stack = (void *)((uintptr_t)kernel_stack + memory::PAGE_SIZE_4K * 32);
 
+
+
+        auto* fx_state = (fx_state_t *)thread->fx_state;
+        asm volatile("fxsave64 (%0)" :: "r"((uintptr_t)fx_state) : "memory");
+        if(fx_state->mxcsr_mask == 0) {
+            fx_state->mxcsr_mask = 0xffbf; // Default, unless already set, According to SDM Vol. 1 11.6.6
+        }
+
+        fx_state->mxcsr = 0x1f80;   // Default - SDM Vol. 1 Table 11-2
+        fx_state->fcw = 0x37f;      // Default - SDM Vol. 1 8.1.5
+
         strncpy(proc->working_dir, "/", 2);
         strncpy(proc->name, "unknown", 8);
         
         return proc;
     }
 
-    process_t* create_process(void* entry) {
+    process_t* create_process(void* entry, bool no_queue = false) {
         process_t* proc = initialize_process();
         proc->address_space = new mm::address_space(memory::create_page_map());
 
@@ -108,7 +126,9 @@ namespace scheduler {
         thread->registers.rbp = thread->registers.rsp;
         thread->registers.rip = (uintptr_t)entry;
 
-        insert_new_thread(proc->threads.get(0));
+        if(!__builtin_expect(no_queue, 0)) {
+            insert_new_thread(proc->threads.get(0));
+        }
 
         processes->add(proc);
         return proc;
@@ -121,9 +141,15 @@ namespace scheduler {
         cpu* c = get_cpu_local();
 
         for(unsigned i = 0; i < smp::get_proc_count(); i++) {
-            process_t* idle_proc = create_process((void *)idle_process);
+            process_t* idle_proc = create_process((void *)idle_process, true);
             strncpy(idle_proc->name, "IdleProcess", 11);
+            idle_proc->threads.get(0)->time_slice_default = 0;
+            idle_proc->threads.get(0)->time_slice = 0;
             smp::get_cpu(i)->idle_process = idle_proc;
+
+            // Clear the idle process out of the queue
+            smp::get_cpu(i)->run_queue.clear();
+            smp::get_cpu(i)->run_queue_count = 0;
         }
 
         idt::register_interrupt_handler(IPI_SCHEDULE, schedule);
@@ -149,7 +175,11 @@ namespace scheduler {
     void schedule(__attribute__((unused)) void*, register_context* regs) {
         cpu* c = get_cpu_local();
         if(c->current_thread) {
-            return;
+            c->current_thread->parent->active_ticks++;
+            if(c->current_thread->time_slice > 0) {
+                c->current_thread->time_slice--;
+                return;
+            }
         }
 
         if(__builtin_expect(acquire_test_lock(&c->run_queue_lock), 0)) {
@@ -168,6 +198,9 @@ namespace scheduler {
                 asm volatile("fxsave64 (%0)" :: "r"((uintptr_t)c->current_thread->fx_state) : "memory");
                 c->current_thread->registers = *regs;
                 c->current_thread = c->current_thread->hook.next;
+                if(!c->current_thread) {
+                    c->current_thread = c->run_queue.front();
+                }
             } else {
                 c->current_thread = c->run_queue.front();
             }

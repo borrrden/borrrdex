@@ -25,6 +25,7 @@ typedef struct proc {
     char name[fs::NAME_MAX];
 
     timeval creation_time;
+    uint64_t active_ticks {0};
     
     lock_t file_descriptors_lock;
     list<fs::fs_fd_t *> file_descriptors;

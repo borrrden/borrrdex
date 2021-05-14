@@ -1,6 +1,6 @@
 JOBS := $(shell nproc)
 
-.PHONY: all disk kernel initrd libc
+.PHONY: all disk fastdisk kernel initrd libc
 
 all: kernel libc initrd disk
 
@@ -15,6 +15,9 @@ initrd:
 
 disk:
 	Scripts/copytodisk.sh
+
+fastdisk:
+	Scripts/copytodisk.sh nomount
 
 clean:
 	ninja -C LibC/build clean

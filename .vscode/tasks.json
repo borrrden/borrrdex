@@ -6,6 +6,7 @@
             "command": "/usr/bin/make",
             "args": [
                 "kernel",
+                "fastdisk",
                 "2>&1"
             ],
             "options": {
