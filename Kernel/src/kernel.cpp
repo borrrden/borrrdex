@@ -21,15 +21,48 @@ extern "C" void _init();
 
 video_mode_t video_mode;
 
-extern "C" void idle_process() {
+extern "C" [[noreturn]] void idle_process() {
     while(true) {
         asm("sti");
         asm("hlt");
     }
 }
 
-void kernel_process() {
-    idle_process();
+[[noreturn]] void kernel_process() {
+    if(fs::fs_node* node = fs::resolve_path("/system/lib")) {
+        fs::register_volume(new fs::link_volume(node, "lib"), false);
+    } else {
+        fs::fs_node* initrd = fs::resolve_path("/initrd");
+        assert(initrd);
+
+        fs::register_volume(new fs::link_volume(initrd, "lib"), false);
+    }
+
+    log::info("Loading init process...");
+    fs::fs_node* initfs_node = nullptr;
+    const char* argv[] = {"init"};
+    int envc = 1;
+    const char* envp[] = {"PATH=/initrd", nullptr};
+    if(!(initfs_node = fs::resolve_path("/system/borrrdex/init"))) {
+        initfs_node = fs::resolve_path("/initrd/fterm");
+        if(!initfs_node) {
+            const char* panic_reasons[] = { "Failed to load init or fterm" };
+            kernel_panic(panic_reasons, 1);
+            __builtin_unreachable();
+        }
+    }
+
+    log::write("OK");
+    void* init_elf = malloc(initfs_node->size);
+    fs::read(initfs_node, 0, initfs_node->size, init_elf);
+    process_t* init_proc = scheduler::create_elf_process(init_elf, 1, (char **)argv, envc, (char **)envp);
+    strncpy(init_proc->working_dir, "/", 1);
+    strncpy(init_proc->name, "init", 5);
+    scheduler::start_process(init_proc);
+
+    while(true) {
+        asm("hlt");
+    }
 }
 
 static void initialize_constructors() {
@@ -99,6 +132,7 @@ extern "C" [[noreturn]] void kmain() {
 
     log::info("Initializing Task Scheduler...");
     scheduler::initialize();
+    log::write("OK");
     while(true) {
         asm("hlt");
     }

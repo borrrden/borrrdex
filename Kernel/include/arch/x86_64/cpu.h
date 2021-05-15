@@ -36,6 +36,12 @@ struct cpu {
     tss_t tss __attribute__((aligned(16)));
 };
 
+inline uintptr_t get_cr3() {
+    volatile uintptr_t val;
+    asm volatile("mov %%cr3, %0" : "=r"(val));
+    return val;
+}
+
 static inline void set_cpu_local(cpu* val) {
     val->self = val;
     uintptr_t low = (uintptr_t)val & 0xFFFFFFFF;

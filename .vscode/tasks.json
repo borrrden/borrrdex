@@ -6,6 +6,8 @@
             "command": "/usr/bin/make",
             "args": [
                 "kernel",
+                "system",
+                "initrd",
                 "fastdisk",
                 "2>&1"
             ],

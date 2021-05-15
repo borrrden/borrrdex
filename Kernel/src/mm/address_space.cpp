@@ -13,6 +13,12 @@ namespace mm {
 
     address_space::~address_space() {
         log::debug(debug_user_mm, debug::LEVEL_NORMAL, "Destroying address space with %u regions.", _regions.size());
+        for(auto& region : _regions) {
+            if(region.vm_object()) {
+                region.vm_object()->remove_use();
+            }
+        }
+
         _regions.clear();
         memory::destroy_page_map(_page_map);
     }
@@ -70,6 +76,8 @@ namespace mm {
         }
 
         assert(region && region->base());
+
+        obj->add_use();
         region->set_vm_object(obj);
         obj->map_allocated_blocks(region->base(), _page_map);
         
@@ -93,6 +101,7 @@ namespace mm {
 
         assert(region && region->base());
         physical_vm_object* vmo = new physical_vm_object(size, true, false, false);
+        vmo->add_use();
         region->set_vm_object(vmo);
 
         vmo->map_allocated_blocks(region->base(), _page_map);

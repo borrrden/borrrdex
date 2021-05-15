@@ -12,3 +12,4 @@ Initrd/
 
 build/
 initrd.tar
+.gdbinit

@@ -9,8 +9,8 @@ static void reverse(char* str, size_t length) {
     char* end = str + length - 1;
     for(size_t i = 0; i < length / 2; i++) {
         char c = *end;
-        *end-- = *str++;
-        *str = c;
+        *end-- = *str;
+        *str++ = c;
     }
 }
 
@@ -194,7 +194,7 @@ extern "C" {
     char* itoa(unsigned long long num, char* str, int base) {
         int i = 0;
         if(num == 0) {
-            str[i++] = 0;
+            str[i++] = '0';
             str[i] = 0;
             return str;
         }

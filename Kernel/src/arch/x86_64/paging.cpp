@@ -5,6 +5,8 @@
 #include <logging.h>
 #include <kassert.h>
 #include <stacktrace.h>
+#include <scheduler.h>
+#include <apic.h>
 #include <physical_allocator.h>
 #include <liballoc/liballoc.h>
 
@@ -17,47 +19,113 @@ static void page_fault_handler(void*, register_context* regs) {
 
     int error_code = idt::get_err_code();
     int present = !(error_code & 0x1);
-    int rw = error_code & 0x2;
+    int read_only = error_code & 0x2;
     int us = error_code & 0x4;
     int reserved = error_code & 0x8;
     int id = error_code & 0x10;
 
+    process_t* process = scheduler::get_current_process();
+
+    // Only call this if we can't reactively map the page
+    auto fault_dump = [&]() {
+        log::error("page fault");
+        log::info("Register Dump:\nrip:0x%016llx, rax: 0x%016llx, rbx: 0x%016llx, rcx: 0x%016llx, rdx: 0x%016llx, rsi: 0x%016llx, rdi: 0x%016llx, rsp: 0x%016llx, rbp: 0x%016llx",
+                    regs->rip, regs->rax, regs->rbx, regs->rcx, regs->rdx, regs->rsi, regs->rdi, regs->rsp, regs->rbp);
+        log::info("Fault address: 0x%016llx", fault_address);
+        if(present) {
+            log::info("Page not present");
+        }
+
+        if(read_only) {
+            log::info("Read Only");
+        }
+
+        if(us) {
+            log::info("User mode process tried to access kernel memory");
+        }
+
+        if(reserved) {
+            log::info("Reserved");
+        }
+
+        if(id) {
+            log::info("Instruction Fetch");
+        }
+    };
+
+    if(process) {
+        mm::address_space* addr_space = process->address_space;
+        asm("sti");
+        mm::mapped_region* fault_region = addr_space->address_to_region(fault_address);
+        asm("cli");
+        if(fault_region && fault_region->vm_object()) {
+            kstd::ref_counted<mm::vm_object> vmo = fault_region->vm_object();
+            if(vmo->is_copy_on_write() && read_only) {
+                // Attempted to write to a read-only page, needs to be copied to a new vm object
+                if(vmo->use_count() <= 1) {
+                    vmo->set_copy_on_write(false);
+                    vmo->map_allocated_blocks(fault_region->base(), addr_space->get_page_map());
+                    vmo->hit(fault_region->base(), fault_address - fault_region->base(), addr_space->get_page_map());
+                    fault_region->lock().release_read();
+                    asm("sti");
+                    return;
+                }
+
+                asm("sti");
+                mm::vm_object* clone = vmo->clone();
+                vmo->remove_use();
+                fault_region->set_vm_object(clone);
+                asm("cli");
+
+                clone->map_allocated_blocks(fault_region->base(), addr_space->get_page_map());
+                clone->hit(fault_region->base(), fault_address - fault_region->base(), addr_space->get_page_map());
+                fault_region->lock().release_read();
+                asm("sti");
+                return;
+            }
+
+            // Attempt to map the page
+            int status = fault_region->vm_object()->hit(fault_region->base(), fault_address - fault_region->base(), addr_space->get_page_map());
+            fault_region->lock().release_read();
+            if(status == 0) {
+                // mapping successful
+                asm("sti");
+                return;
+            }
+        }
+    }
+
+    if(regs->ss & 0x3) {
+        assert(process);
+
+        log::info("Process %s (PID: %x) page fault.", process->name, process->pid);
+        fault_dump();
+
+        log::info("Stack trace:");
+        log::info("[TODO]");
+        log::info("End stack trace.");
+
+        // TODO: kill process
+
+        return;
+    }
+
     asm("cli");
+    fault_dump();
 
-    log::error("page fault");
-    log::info("Register Dump:\nrip:0x%016llx, rax: 0x%016llx, rbx: 0x%016llx, rcx: 0x%016llx, rdx: 0x%016llx, rsi: 0x%016llx, rdi: 0x%016llx, rsp: 0x%016llx, rbp: 0x%016llx",
-                regs->rip, regs->rax, regs->rbx, regs->rcx, regs->rdx, regs->rsi, regs->rdi, regs->rsp, regs->rbp);
-    log::info("Fault address: 0x%016llx", fault_address);
-    if(present) {
-        log::info("Page not present");
-    }
-
-    if(rw) {
-        log::info("Read Only");
-    }
-
-    if(us) {
-        log::info("User mode process tried to access kernel memory");
-    }
-
-    if(reserved) {
-        log::info("Reserved");
-    }
-
-    if(id) {
-        log::info("Instruction Fetch");
-    }
+    //OMG, everyone STOPPPP
+    apic::local::send_ipi(0, apic::ICR_DSH_OTHER, apic::ICR_MESSAGE_TYPE_FIXED, IPI_HALT);
 
     log::info("Stack trace:");
     print_stack_trace(regs->rbp);
     log::info("End stack trace.");
 
-    char temp[19];
-    itoa(regs->rip, temp, 16);
+    char temp[19] = { '0', 'x' };
+    itoa(regs->rip, temp + 2, 16);
     temp[18] = 0;
 
-    char temp2[19];
-    itoa(fault_address, temp2, 16);
+    char temp2[19] = { '0', 'x' };
+    itoa(fault_address, temp2 + 2, 16);
     temp2[18] = 0;
 
     const char* reasons[]{"Page Fault", "RIP: ", temp, "Address: ", temp2};
@@ -124,7 +192,7 @@ namespace memory {
 
             page_tables[i] = (page_t **)malloc(PAGE_SIZE_4K);
             set_page_frame(&(pdpt[i]), page_dirs_phys[i]);
-            pdpt[i] = TABLE_WRITEABLE | TABLE_PRESENT | PDPT_USER;
+            pdpt[i] |= TABLE_WRITEABLE | TABLE_PRESENT | PDPT_USER;
 
             memset(page_dirs[i], 0, PAGE_SIZE_4K);
             memset(page_tables[i], 0, PAGE_SIZE_4K);

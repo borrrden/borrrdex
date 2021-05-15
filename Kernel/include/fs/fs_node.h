@@ -19,6 +19,7 @@ namespace fs {
         uid_t uid {0};
         volume_id_t volume_id {0};
         size_t size {0};
+        int nlink {0};
         uint32_t flags {0};
         fs_node* parent {nullptr};
 

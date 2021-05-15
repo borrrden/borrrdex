@@ -12,8 +12,9 @@ typedef int32_t nlink_t;
 typedef int64_t volume_id_t;
 
 namespace fs {
-    constexpr uint8_t NAME_MAX = 255;
-    constexpr uint16_t PATH_MAX = 4096;
+    constexpr uint8_t  NAME_MAX     = 255;
+    constexpr uint16_t PATH_MAX     = 4096;
+    constexpr uint8_t  SYMLINK_MAX  = 10;
 
     // Reused from ELF spec
     constexpr uint16_t S_IFMT   = 0xF000;
@@ -58,7 +59,10 @@ namespace fs {
     void initialize();
     const list<fs_volume *>* get_volumes();
     fs_node* get_root();
-    void register_volume(fs_volume* vol);
+    void register_volume(fs_volume* vol, bool add_root = true);
+
+    fs_node* resolve_path(const char* path, const char* working_dir = nullptr, bool follow_symlink = true);
+    fs_node* resolve_path(const char* path, fs_node* working_dir, bool follow_symlink = true);
 
     fs_node* find_dir(fs_node* parent, const char* name);
     ssize_t read(fs_node* node, size_t off, size_t size, void* buffer);

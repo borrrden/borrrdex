@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <spinlock.h>
 #include <mm/address_space.h>
+#include <cpu.h>
 
 typedef struct proc {
     pid_t pid {-1};
@@ -36,4 +37,19 @@ typedef struct proc {
 namespace scheduler {
     void initialize();
     void tick(register_context* regs);
+
+    void start_process(process_t* proc);
+
+    process_t* create_elf_process(void* elf, int argc = 0, char** argv = nullptr, 
+        int envc = 0, char** envp = nullptr, const char* exec_path = nullptr);
+
+    inline static process_t* get_current_process() {
+        cpu* c = get_cpu_local();
+        process_t* ret = nullptr;
+        if(c->current_thread) {
+            ret = c->current_thread->parent;
+        }
+
+        return ret;
+    }
 }

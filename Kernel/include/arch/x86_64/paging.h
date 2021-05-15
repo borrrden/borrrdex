@@ -35,6 +35,7 @@ namespace memory {
     constexpr uint8_t  PAGE_PAT_WRITE_COMB  = PAGE_PAT | PAGE_CACHE_DISABLED | PAGE_WRITETHROUGH;
 
     constexpr uint16_t PAGE_SIZE_4K         = 0x1000;
+    constexpr uint64_t PAGE_SIZE_4K_MASK    = ~((uint64_t)PAGE_SIZE_4K - 1);
     constexpr uint32_t PAGE_SIZE_2M         = 0x200000;
     constexpr uint32_t PAGE_SIZE_1G         = 0x40000000;
     constexpr uint64_t PDPT_SIZE            = 0x8000000000;

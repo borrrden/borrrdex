@@ -22,7 +22,7 @@ namespace hal {
     boot_module_t boot_modules[128];
     int boot_module_count;
     bool debug_mode = false;
-    bool disable_smp = false;
+    bool disable_smp = true;
 }
 
 static void init_core() {

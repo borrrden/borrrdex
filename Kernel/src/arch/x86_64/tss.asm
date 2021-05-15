@@ -29,7 +29,7 @@ load_tss: ;  RDI - address, RSI - GDT, RDX - selector
 
     mov eax, edi
     shr eax, 24
-    lea rbx, [rsi + rdx + 4] ; addr_2
+    lea rbx, [rsi + rdx + 7] ; addr_2
     mov byte [rbx], al
 
     mov rax, rdi

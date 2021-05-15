@@ -277,7 +277,7 @@ extern "C" {
 
             char temp[19] = { '0', 'x' };
             char temp2[19] = { '0', 'x' };
-            const char* reasons[]{"Generic Exception", "RIP: ", itoa(regs->rip, temp + 2, 16), "Exception: ", itoa(int_num, temp2 + 2, 16)};
+            const char* reasons[]{"Generic Exception", "RIP: ", itoa(regs->rip, temp + 2, 16) - 2, "Exception: ", itoa(int_num, temp2 + 2, 16) - 2};
             kernel_panic(reasons, 5);
             __builtin_unreachable();
         } else {

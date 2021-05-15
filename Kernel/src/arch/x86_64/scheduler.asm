@@ -27,6 +27,9 @@ task_switch:
     mov rax, rsi
     popaq
 
+    push rax
+    mov rax, cr3
+    pop rax
     mov cr3, rax
 
     pop rax
