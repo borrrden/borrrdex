@@ -6,6 +6,7 @@
 #include <kerrno.h>
 #include <kstring.h>
 #include <kassert.h>
+#include <debug.h>
 
 namespace fs {
     class root_node : public fs_node {
@@ -107,7 +108,10 @@ namespace fs {
         while(file != nullptr) {
             fs_node* node = find_dir(current_node, file);
             if(!node) {
-                log::warning("%s not found", file);
+                IF_DEBUG(debug_level_filesystem >= debug::LEVEL_NORMAL, {
+                    log::warning("%s not found", file);
+                })
+                
                 return nullptr;
             }
 
@@ -164,6 +168,34 @@ namespace fs {
     ssize_t read(fs_node* node, size_t off, size_t size, void* buf) {
         assert(node);
         return node->read(off, size, reinterpret_cast<uint8_t *>(buf)); 
+    }
+
+    ssize_t read(fs_fd_t* handle, size_t size, uint8_t* buf) {
+        // assert(handle); //TODO stdout
+        ssize_t ret = read(handle->node, handle->pos, size, buf);
+        if(ret > 0) {
+            handle->pos += ret;
+        }
+
+        return ret;
+    }
+
+    fs_fd_t* open(fs_node* node, uint32_t flags) {
+        return node->open(flags);
+    }
+
+    void close(fs_node* node) {
+        node->close();
+    }
+
+    void close(fs_fd_t* fd) {
+        if(!fd) {
+            return;
+        }
+
+        assert(fd->node);
+        fd->node->close();
+        fd->node = nullptr;
     }
 
     int root_node::read_dir(directory_entry* ent, uint32_t index) {

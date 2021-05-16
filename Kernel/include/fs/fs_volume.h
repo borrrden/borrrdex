@@ -12,9 +12,13 @@ namespace fs {
         virtual ~fs_volume() = default;
 
         virtual void set_volume_id(volume_id_t id);
+
         fs_node* mount_point() const { return _mount_point; }
+        void set_mount_point(fs_node* mp) { _mount_point = mp; }
+
         directory_entry mount_point_entry() { return _mount_point_entry; }
-    
+        void set_mount_point_entry(const directory_entry &de) { _mount_point_entry = de; }
+        void set_mount_point_entry(directory_entry&& de) { _mount_point_entry = std::move(de); }
     protected:
         volume_id_t _volume_id;
         fs_node* _mount_point;

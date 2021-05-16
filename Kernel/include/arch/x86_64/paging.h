@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <system.h>
 
+namespace mm {
+    class address_space;
+}
+
 namespace memory {
     constexpr uint64_t KERNEL_VIRTUAL_BASE  = 0xFFFFFFFF80000000ULL;
     constexpr uint64_t IO_VIRTUAL_BASE      = (KERNEL_VIRTUAL_BASE - 0x100000000ULL);
@@ -85,6 +89,7 @@ namespace memory {
     void initialize_virtual_memory();
 
     bool check_kernel_pointer(uintptr_t addr, uint64_t len);
+    bool check_usermode_pointer(uintptr_t addr, uint64_t len, mm::address_space* addr_space);
 
     void* kernel_allocate_4k_pages(uint64_t amount);
     void kernel_free_4k_pages(void* addr, uint64_t amount);

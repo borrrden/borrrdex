@@ -14,6 +14,7 @@
 #include <tss.h>
 #include <logging.h>
 #include <abi.h>
+#include <debug.h>
 
 extern "C" void idle_process();
 void kernel_process();
@@ -60,11 +61,6 @@ namespace scheduler {
 
     process_t* initialize_process() {
         process_t* proc = new process_t();
-
-        proc->file_descriptors_lock = 0;
-        proc->file_descriptors.clear();
-        proc->children.clear();
-        proc->threads.clear();
 
         proc->threads.add(new threading::thread());
         timer::get_system_uptime(&proc->creation_time);
@@ -269,6 +265,26 @@ namespace scheduler {
         thread->registers.rbp = thread->registers.rsp;
         assert(!(thread->registers.rsp & 0xF));
 
+        fs::fs_node* null_dev = fs::resolve_path("/dev/null");
+        fs::fs_node* log_dev = fs::resolve_path("/dev/klog");
+
+        if(null_dev) {
+            proc->allocate_file_desc(fs::open(null_dev, 0)); // stdin
+        } else {
+            proc->allocate_file_desc(nullptr);
+            log::warning("Failed to find /dev/null");
+        }
+
+        if(log_dev) {
+            proc->allocate_file_desc(fs::open(log_dev, 0)); // stdout
+            proc->allocate_file_desc(fs::open(log_dev, 0)); // stderr
+        } else {
+            proc->allocate_file_desc(nullptr);
+            proc->allocate_file_desc(nullptr);
+
+            log::warning("Failed to find /dev/klog");
+        }
+
         processes->add(proc);
         return proc;
     }
@@ -366,5 +382,141 @@ namespace scheduler {
 
     void start_process(process_t* proc) {
         insert_new_thread(proc->threads.get(0));
+    }
+
+    void end_process(process_t* proc) {
+        IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
+            log::info("Ending process: %s (%d)", proc->name, proc->pid);
+        })
+
+        cpu* c = get_cpu_local();
+        list<threading::thread *> running_threads;
+        for(auto thread : proc->threads) {
+            if(thread != c->current_thread && thread) {
+                thread->state = thread_state::zombie;
+            }
+
+            if(acquire_test_lock(&thread->lock) != 0) {
+                // Unable to get lock, put the thread back
+                running_threads.add(thread);
+            } else {
+                // Stop the thread from running further
+                thread->state = thread_state::blocked;
+                thread->time_slice = thread->time_slice_default = 0;
+            }
+        }
+
+        asm("sti");
+        while(true) {
+            // TODO: Convert to linked list
+            bool still_alive = false;
+            for(int i = 0; i < running_threads.size(); i++) {
+                threading::thread* thread = running_threads[i];
+                if(!thread) {
+                    continue;
+                }
+
+                still_alive = true;
+                if(acquire_test_lock(&thread->lock) == 0) {
+                    thread->state = thread_state::blocked;
+                    thread->time_slice = thread->time_slice_default = 0;
+                    running_threads.set(nullptr, i);
+                }
+            }
+
+            if(!still_alive) {
+                break;
+            }
+
+            // TODO: Sleep
+        }
+
+        IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
+            log::info("Removing threads from the run queue...");
+        })
+
+        acquire_lock(&c->run_queue_lock);
+        asm("cli");
+
+        while(c->run_queue_count) {
+            auto it = c->run_queue.pop_front();
+            delete it;
+            c->run_queue_count--;
+        }
+
+        release_lock(&c->run_queue_lock);
+        asm("sti");
+
+        for(unsigned i = 0; i < smp::get_proc_count(); i++) {
+            cpu* other = smp::get_cpu(i);
+            if(other->id == c->id) {
+                continue;
+            }
+
+            asm("sti");
+            acquire_lock(&other->run_queue_lock);
+            asm("cli");
+
+            while(other->current_thread && other->current_thread->parent == proc) {
+                // Spin for a few ms
+            }
+
+            auto current = other->run_queue.begin();
+            auto to_remove = other->run_queue.end();
+            while(current != other->run_queue.end()) {
+                if(to_remove != other->run_queue.end()) {
+                    other->run_queue.erase(to_remove);
+                    delete *to_remove;
+                    to_remove = other->run_queue.end();
+                }
+
+                if((*current)->parent == proc) {
+                    to_remove = current;
+                }
+
+                current++;
+                other->run_queue_count--;
+            }
+
+            if(to_remove != other->run_queue.end()) {
+                other->run_queue.erase(to_remove);
+                delete *to_remove;
+                to_remove = other->run_queue.end();
+            }
+
+            release_lock(&other->run_queue_lock);
+            asm("sti");
+            if(!other->current_thread) {
+                apic::local::send_ipi(other->id, apic::ICR_DSH_SELF, apic::ICR_MESSAGE_TYPE_FIXED, IPI_SCHEDULE);
+            }
+        }
+
+        IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
+            log::info("Closing fds...");
+        })
+
+        proc->destroy_all_files();
+
+        IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
+            log::info("Removing process...");
+        })
+
+        for(int i = 0; i < processes->size(); i++) {
+            if(processes->get(i)->pid == proc->pid) {
+                processes->remove(i);
+                break;
+            }
+        }
+
+        dead_processes->add(proc);
+        bool is_process_to_kill = c->current_thread->parent == proc;
+        if(is_process_to_kill) {
+            asm("cli");
+            asm volatile("mov %%rax, %%cr3" :: "a"((uint64_t)memory::kernel_pml4 - memory::KERNEL_VIRTUAL_BASE));
+            c->current_thread->state = thread_state::dying;
+            c->current_thread->time_slice = 0;
+            asm volatile("sti; int $0xFD"); // Send IPI_SCHEDULE to self via interrupt
+            assert(!"Failed to exit process, overran interrupt");
+        }
     }
 }

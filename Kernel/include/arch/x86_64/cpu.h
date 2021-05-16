@@ -42,6 +42,8 @@ inline uintptr_t get_cr3() {
     return val;
 }
 
+extern "C" tss_t* get_tss();
+
 static inline void set_cpu_local(cpu* val) {
     val->self = val;
     uintptr_t low = (uintptr_t)val & 0xFFFFFFFF;

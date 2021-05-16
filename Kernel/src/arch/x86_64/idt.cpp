@@ -7,6 +7,7 @@
 #include <panic.h>
 #include <apic.h>
 #include <kstring.h>
+#include <scheduler.h>
 
 idt_desc_t s_idt[256];
 idt_t idt_ptr;
@@ -118,6 +119,8 @@ extern "C" {
     void irq13();
     void irq14();
     void irq15();
+    
+    void syscall_init();
 }
 
 extern uint64_t int_vectors[];
@@ -229,6 +232,8 @@ void idt::initialize() {
     set_gate(45, (uint64_t)irq13, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
     set_gate(46, (uint64_t)irq14, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
     set_gate(47, (uint64_t)irq15, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
+
+    syscall_init();
 }
 
 void idt::register_interrupt_handler(uint8_t interrupt, isr_t handler, void* data) {
@@ -281,7 +286,11 @@ extern "C" {
             kernel_panic(reasons, 5);
             __builtin_unreachable();
         } else {
-            // TODO: User process crash
+            log::warning("Process %s crashed (PID %d)", scheduler::get_current_process()->name, scheduler::get_current_process()->pid);
+            log::info("RIP: 0x%llx, Exception: 0x%x (err: %d)", regs->rip, int_num, err_code);
+            log::info("Stack Trace: ");
+            user_print_stack_trace(regs->rbp, scheduler::get_current_process()->address_space);
+            scheduler::end_process(scheduler::get_current_process());
         }
     }
 

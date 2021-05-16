@@ -11,6 +11,7 @@
 #include <liballoc/liballoc.h>
 #include <symbols.h>
 #include <scheduler.h>
+#include <device.h>
 
 const char* version = "Borrrdex x86_64";
 
@@ -74,6 +75,8 @@ static void initialize_constructors() {
 
 extern "C" [[noreturn]] void kmain() {
     fs::initialize();
+    device_manager::initialize();
+    log::late_initialize();
 
     initialize_constructors();
 

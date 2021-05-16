@@ -1,6 +1,11 @@
 #include <logging.h>
 #include <kstring.h>
 #include <serial.h>
+#include <device.h>
+#include <kmath.h>
+#include <idt.h>
+#include <kerrno.h>
+#include <termios.h>
 
 constexpr uint16_t LADJUST =	0x0004;		/* left adjustment */
 constexpr uint16_t LONGINT =	0x0010;		/* long integer */
@@ -15,6 +20,110 @@ constexpr uint16_t MAXINT = 	0x1000;		/* largest integer size (intmax_t) */
 #define PADCHAR (flags & ZEROPAD) ? '0' : ' ';
 
 namespace log {
+    using device_type = devices::device_type;
+
+    class log_device : public devices::device {
+    public:
+        log_device(const char* name)
+            :device(device_type::kernel_log, name)
+        {
+            flags = fs::FS_NODE_FILE;
+        }
+
+        void enable() {
+            if(!_log_buffer) {
+                _log_buffer = (char *)malloc(MAX_SIZE);
+
+                // Arbitrary magic marker
+                _log_buffer[0] = 0;
+                _log_buffer[1] = 1;
+            }
+
+            _enabled = true;
+        }
+
+        void disable() {
+            _enabled = false;
+        }
+
+        ssize_t read(size_t offset, size_t size, uint8_t* buffer) override {
+            if(!_log_buffer) {
+                return 0;
+            }
+
+            size = kstd::max(MAX_SIZE, size);
+
+            if(_size < MAX_SIZE) {
+                size = kstd::max(_size, offset + size);
+                memcpy(buffer, _log_buffer + offset, size);
+                return size;
+            }
+
+            if(_position + offset + size < MAX_SIZE) {
+                memcpy(buffer, _log_buffer + _position + offset, size);
+                return size;
+            }
+
+            size_t remaining = MAX_SIZE - _position + offset + size;
+            memcpy(buffer, _log_buffer + _position + offset, remaining);
+            memcpy(buffer + remaining, _log_buffer, size - remaining);
+            return size;
+        }
+
+        ssize_t write(size_t offset, size_t size, uint8_t* buffer) override {
+            if(offset != 0) {
+                return -EINVAL; // No writing at arbitrary offsets
+            }
+
+            if(!_enabled) {
+                return 0;
+            }
+
+            size = kstd::max(size, MAX_SIZE);
+            if(_size == MAX_SIZE) {
+                if(_position + size <= MAX_SIZE) {
+                    memcpy(_log_buffer + _position, buffer, size);
+                    _position += size;
+                    return size;
+                }
+
+                size_t to_write = MAX_SIZE - _position + size;
+                size_t remaining = size - to_write;
+                memcpy(_log_buffer + _position, buffer, to_write);
+                memcpy(_log_buffer, buffer + to_write, remaining);
+                _position = remaining;
+                return size;
+            }
+
+            if(_size + size <= MAX_SIZE) {
+                memcpy(_log_buffer + _size, buffer, size);
+                _size += size;
+                return size;
+            }
+
+            size_t to_write = MAX_SIZE - _size + size;
+            size_t remaining = size - to_write;
+            memcpy(_log_buffer + _size, buffer, to_write);
+            memcpy(_log_buffer, buffer + to_write, remaining);
+            _position = remaining;
+            _size = MAX_SIZE;
+            return size;
+        }
+
+        int ioctl(uint64_t cmd, uint64_t arg) override {
+            return cmd == TIOCGWINSZ ? 0 : -1;
+        }
+    private:
+        static constexpr size_t MAX_SIZE = 0x100000;
+
+        char* _log_buffer {nullptr};
+        size_t _position {0};
+        size_t _size {0};
+        bool _enabled {false};
+    };
+
+    log_device* log_dev = nullptr;
+
     void write_n(const char* str, size_t n) {
         uart::print_n(str, n);
     }
@@ -236,5 +345,9 @@ namespace log {
         va_start(args, format);
         write_f(format, args);
         va_end(args);
+    }
+
+    void late_initialize() {
+        log_dev = new log_device("klog");
     }
 }

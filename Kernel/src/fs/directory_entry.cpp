@@ -4,7 +4,9 @@
 #include <kassert.h>
 
 namespace fs {
-    directory_entry::directory_entry(fs_node* node, const char* name) {
+    directory_entry::directory_entry(fs_node* node, const char* name)
+        :node(node)
+    {
         strncpy(_name, name, NAME_MAX);
 
         flags = file_to_dirent_flags(node->flags);

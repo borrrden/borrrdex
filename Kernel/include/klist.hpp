@@ -59,9 +59,15 @@ class list {
     };
 public:
     list() 
+        :list(8)
+    {
+
+    }
+
+    list(size_t capacity)
         :_size(0)
-        ,_capacity(8)
-        ,_mem((T*)malloc(sizeof(T) * 8))
+        ,_capacity(capacity)
+        ,_mem((T*)malloc(sizeof(T) * capacity))
     {
 
     }
@@ -95,6 +101,15 @@ public:
         _size++;
         _mem[it._pos] = obj;
         return _mem[it._pos];
+    }
+
+    bool set(const T& obj, size_t idx) {
+        if(idx >= _size) {
+            return false; 
+        }
+
+        _mem[idx] = obj;
+        return true;
     }
 
     void remove(size_t index) {
@@ -131,6 +146,10 @@ public:
         list_iterator it(*this);
         it._pos = _size;
         return it;
+    }
+
+    ALWAYS_INLINE T operator[](size_t pos) const {
+        return get(pos);
     }
 
 private:

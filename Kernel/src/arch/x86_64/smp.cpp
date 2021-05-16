@@ -27,6 +27,7 @@ volatile uint64_t* smp_stack = (uint64_t*)SMP_TRAMPOLINE_STACK;
 volatile uint64_t* smp_entry2 = (uint64_t*)SMP_TRAMPOLINE_ENTRY2;
 
 volatile bool done_init;
+extern "C" void syscall_init();
 
 namespace smp {
     cpu* cpus[256];
@@ -47,6 +48,8 @@ namespace smp {
 
         tss::initialize_tss(&c->tss, c->gdt);
         apic::local::enable();
+
+        syscall_init();
 
         done_init = true;
 

@@ -8,6 +8,7 @@
 namespace mm {
     address_space::address_space(page_map_t* pm) 
         :_page_map(pm)
+        ,_regions(list<mapped_region>(256))    // HACK: Make this fairly big to avoid an allocation in an allocation
     {
     }
 

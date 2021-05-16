@@ -66,4 +66,8 @@ namespace fs {
 
     fs_node* find_dir(fs_node* parent, const char* name);
     ssize_t read(fs_node* node, size_t off, size_t size, void* buffer);
+    ssize_t read(fs_fd_t* handle, size_t size, uint8_t* buffer);
+    fs_fd_t* open(fs_node* node, uint32_t flags);
+    void close(fs_node* node);
+    void close(fs_fd_t* fd);
 }

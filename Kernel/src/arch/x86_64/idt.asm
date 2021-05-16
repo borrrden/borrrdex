@@ -3,9 +3,12 @@ BITS 64
 extern isr_handler
 extern irq_handler
 extern ipi_handler
+extern syscall_handler
+extern get_tss
 
 global idt_flush
 global int_vectors
+global syscall_init
 
 extern idt_ptr
 
@@ -167,6 +170,48 @@ IRQ 12, 44
 IRQ 13, 45
 IRQ 14, 46
 IRQ 15, 47
+
+__syscall_handler:
+    cli
+    pushaq
+
+    call get_tss
+    mov rdi, rsp
+    mov rsp, qword [rax + 0x04]
+    push rdi
+    xor rbp, rbp
+
+    call syscall_handler
+    pop rsp
+    popaq
+    sti
+    o64 sysret
+
+syscall_init:
+    mov rax, $__syscall_handler
+    mov r8, rax
+    shr r8, 0x20
+    mov rdx, r8
+
+    ; Truncate to 32-bits
+    mov eax, eax
+    mov edx, edx
+
+    ; LSTAR MSR, set handler RIP
+    mov rcx, 0xc0000082
+    wrmsr
+
+    ; While we are here, set up syscall/sysret
+    mov rcx, 0xc0000080
+    rdmsr
+    or eax, 1
+    wrmsr
+    mov rcx, 0xc0000081
+    or eax, 1
+    mov edx, 0x00180008
+    wrmsr
+
+    ret
 
 section .rodata
 int_vectors:

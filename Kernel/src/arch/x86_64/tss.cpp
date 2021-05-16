@@ -2,8 +2,14 @@
 #include <kstring.h>
 #include <paging.h>
 #include <physical_allocator.h>
+#include <cpu.h>
 
 extern "C" void load_tss(uint64_t address, uint64_t gdt, uint8_t selector);
+
+extern "C" tss_t* get_tss() {
+    cpu *c = get_cpu_local();
+    return &c->tss;
+}
 
 namespace tss {
     void initialize_tss(tss_t* tss, void* gdt) {

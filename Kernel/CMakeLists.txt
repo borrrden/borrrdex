@@ -84,6 +84,7 @@ add_executable(
     src/arch/x86_64/symbols.cpp
     src/arch/x86_64/scheduler.cpp
     src/arch/x86_64/scheduler.asm
+    src/arch/x86_64/syscalls.cpp
     src/arch/x86_64/smp.cpp
     src/arch/x86_64/tss.cpp
     src/arch/x86_64/tss.asm
@@ -102,6 +103,7 @@ add_executable(
     src/kstring.cpp
     src/kassert.cpp
     src/kernel.cpp
+    src/device.cpp
 )
 
 target_compile_options(

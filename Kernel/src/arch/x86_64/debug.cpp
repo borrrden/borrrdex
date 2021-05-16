@@ -15,3 +15,7 @@ const int debug_level_misc = 0;
 const int debug_level_symbols = 0;
 
 const int debug_user_mm = 0;
+
+const int debug_level_filesystem = 0;
+
+const int debug_level_scheduler = 0;

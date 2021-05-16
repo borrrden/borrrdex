@@ -10,6 +10,8 @@ namespace log {
     void error(const char* __restrict format, ...);
     void warning(const char* __restrict format, ...);
 
+    void late_initialize();
+
     #ifdef KERNEL_DEBUG
     __attribute__((always_inline)) inline static void debug(const int& var, const int lvl, const char* __restrict fmt, ...) {
         if(var >= lvl) {

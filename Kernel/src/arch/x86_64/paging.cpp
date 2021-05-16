@@ -9,6 +9,7 @@
 #include <apic.h>
 #include <physical_allocator.h>
 #include <liballoc/liballoc.h>
+#include <mm/address_space.h>
 
 constexpr uint16_t KERNEL_HEAP_PDPT_INDEX = 511;
 constexpr uint16_t KERNEL_HEAP_PML4_INDEX = 511;
@@ -467,6 +468,10 @@ namespace memory {
         }
 
         return true;
+    }
+
+    bool check_usermode_pointer(uintptr_t addr, uint64_t len, mm::address_space* addr_space) {
+        return addr_space->range_in_region(addr, len);
     }
 }
 
