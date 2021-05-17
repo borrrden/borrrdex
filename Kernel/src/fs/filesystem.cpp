@@ -171,8 +171,23 @@ namespace fs {
     }
 
     ssize_t read(fs_fd_t* handle, size_t size, uint8_t* buf) {
-        // assert(handle); //TODO stdout
+        assert(handle);
         ssize_t ret = read(handle->node, handle->pos, size, buf);
+        if(ret > 0) {
+            handle->pos += ret;
+        }
+
+        return ret;
+    }
+
+    ssize_t write(fs_node* node, size_t off, size_t size, void* buf) {
+        assert(node);
+        return node->write(off, size, reinterpret_cast<uint8_t *>(buf)); 
+    }
+
+    ssize_t write(fs_fd_t* handle, size_t size, uint8_t* buf) {
+        assert(handle);
+        ssize_t ret = write(handle->node, handle->pos, size, buf);
         if(ret > 0) {
             handle->pos += ret;
         }

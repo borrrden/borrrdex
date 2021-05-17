@@ -115,7 +115,12 @@
         "LibC/options/posix/include",
         "LibC/options/ansi/include",
         "LibC/options/internal/include",
-        "Kernel/src/lai/include"
+        "Kernel/src/lai/include",
+        "LibBor/include",
+        "LibBor/include/borrrdex/core/"
+    ],
+    "C_Cpp.default.compilerArgs": [
+        "-D__borrrdex__"
     ],
     "debug.onTaskErrors": "debugAnyway"
 }

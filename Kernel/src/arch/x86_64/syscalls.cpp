@@ -9,6 +9,8 @@
 #include <debug.h>
 #include <kstring.h>
 #include <fs/fs_node.h>
+#include <video/video.h>
+#include <framebuffer.h>
 
 using thread_state = threading::thread::thread_state;
 
@@ -40,7 +42,23 @@ long sys_read(register_context* regs) {
 }
 
 long sys_write(register_context* regs) {
-    return -ENOSYS;
+    process_t* proc = scheduler::get_current_process();
+    fs::fs_fd_t* handle = proc->get_file_desc(SC_ARG0(regs));
+    if(!handle) {
+        log::warning("sys_read: invalid file descriptor: %d", SC_ARG0(regs));
+        return -EBADF;
+    }
+
+    uint8_t* buffer = (uint8_t *)SC_ARG1(regs);
+    uint64_t count = SC_ARG2(regs);
+
+    if(!memory::check_usermode_pointer(SC_ARG1(regs), count, proc->address_space)) {
+        log::warning("sys_read: invalid memory buffer: 0x%llx", SC_ARG1(regs));
+        return -EFAULT;
+    }
+
+    ssize_t ret = fs::write(handle, count, buffer);
+    return ret;
 }
 
 long sys_exit(register_context* regs) {
@@ -198,6 +216,29 @@ long sys_set_fsbase(register_context* regs) {
     return 0;
 }
 
+long sys_map_fb(register_context* regs) {
+    video_mode_t vid_mode = video::get_video_mode();
+    process_t* proc = scheduler::get_current_process();
+
+    mm::mapped_region* region = proc->address_space->map_vmo(video::get_framebuffer_vmo(), 0, false);
+    if(!region || !region->base()) {
+        return -1;
+    }
+
+    uintptr_t virt = region->base();
+    fb_info_t* fb_info = (fb_info_t *)SC_ARG1(regs);
+    fb_info->width = vid_mode.width;
+    fb_info->height = vid_mode.height;
+    fb_info->bpp = vid_mode.bpp;
+    fb_info->pitch = vid_mode.pitch;
+
+    *((uintptr_t *)SC_ARG0(regs)) = virt;
+
+    log::info("Framebuffer mapped at 0x%llx", virt);
+
+    return 0;
+}
+
 syscall_t syscalls[NUM_SYSCALLS] = {
     sys_log,
     sys_open,
@@ -207,7 +248,8 @@ syscall_t syscalls[NUM_SYSCALLS] = {
     sys_close,
     sys_exit,
     sys_mmap,
-    sys_set_fsbase
+    sys_set_fsbase,
+    sys_map_fb
 };
 
 extern "C" void syscall_handler(register_context* regs) {

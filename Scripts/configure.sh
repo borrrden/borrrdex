@@ -22,7 +22,13 @@ if ! [ -x "$(command -v borrrdex-clang)" ]; then
     exit 1
 fi
 
-cd Kernel
+cd LibBor
+cmake -G Ninja .. -DCMAKE_TOOLCHAIN_FILE=../Scripts/borrrdex-cmake-options.txt -DCMAKE_INSTALL_PREFIX=$BORRRDEX_SYSROOT
+
+cd ../System
+cmake -G Ninja .. -DCMAKE_TOOLCHAIN_FILE=../Scripts/borrrdex-cmake-options.txt
+
+cd ../Kernel
 cp $SPATH/lai-CMakeLists.txt src/lai/CMakeLists.txt
 cmake -G Ninja .. -DCMAKE_TOOLCHAIN_FILE=../Scripts/borrrdex-cmake-options.txt
 

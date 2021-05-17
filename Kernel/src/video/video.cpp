@@ -1,6 +1,7 @@
 #include <video/video.h>
 #include <logging.h>
 #include <kmath.h>
+#include <kassert.h>
 
 uint8_t default_font[128][8] = {
     { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },   // U+0000 (nul)
@@ -150,6 +151,27 @@ namespace video {
     uint32_t screen_pitch;
     module::psf1_font_t* font;
 
+    class framebuffer_vmo : public mm::vm_object {
+    public:
+        framebuffer_vmo()
+            :mm::vm_object(memory::PAGE_COUNT_4K(screen_pitch * screen_height * (screen_depth / 8)) << memory::PAGE_SHIFT_4K,
+                false, true, false)
+        {
+
+        }
+
+        void map_allocated_blocks(uintptr_t base, page_map_t* map) override {
+            memory::map_virtual_memory_4k(video_mode.physical_address, base, _size >> memory::PAGE_SHIFT_4K, map);
+        }
+
+        [[noreturn]] mm::vm_object* clone() {
+            assert(!"Framebuffer VMO cannot be cloned");
+        }
+    };
+
+    framebuffer_vmo* fb_vmo;
+    kstd::ref_counted<mm::vm_object>* fb_vmo_ptr;
+
     void initialize(video_mode_t video_mode, module::psf1_font_t* font) {
         video_memory = (uint8_t *)video_mode.address;
         screen_width = video_mode.width;
@@ -158,6 +180,9 @@ namespace video {
         screen_pitch = video_mode.pitch;
         video::video_mode = video_mode;
         video::font = font;
+
+        fb_vmo = new framebuffer_vmo();
+        fb_vmo_ptr = new kstd::ref_counted<mm::vm_object>(fb_vmo);
     }
 
     void draw_rect(unsigned int x, unsigned int y, unsigned int width, unsigned int height, uint8_t r, uint8_t g, uint8_t b) {
@@ -239,5 +264,10 @@ namespace video {
 
     video_mode_t get_video_mode() {
         return video_mode;
+    }
+
+    kstd::ref_counted<mm::vm_object> get_framebuffer_vmo() {
+        // TODO: This is not ideal...
+        return *fb_vmo_ptr;
     }
 }

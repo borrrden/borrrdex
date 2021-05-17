@@ -81,6 +81,8 @@ extern "C" [[noreturn]] void kmain() {
 
     initialize_constructors();
 
+    log::enable_klog();
+
     video_mode = video::get_video_mode();
     log::debug(debug_level_misc, debug::LEVEL_VERBOSE, "Video Resolution: %dx%dx%d", 
         video_mode.width, video_mode.height, video_mode.bpp);

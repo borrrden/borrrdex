@@ -51,10 +51,10 @@ namespace log {
                 return 0;
             }
 
-            size = kstd::max(MAX_SIZE, size);
+            size = kstd::min(MAX_SIZE, size);
 
             if(_size < MAX_SIZE) {
-                size = kstd::max(_size, offset + size);
+                size = kstd::min(_size, offset + size);
                 memcpy(buffer, _log_buffer + offset, size);
                 return size;
             }
@@ -79,7 +79,7 @@ namespace log {
                 return 0;
             }
 
-            size = kstd::max(size, MAX_SIZE);
+            size = kstd::min(size, MAX_SIZE);
             if(_size == MAX_SIZE) {
                 if(_position + size <= MAX_SIZE) {
                     memcpy(_log_buffer + _position, buffer, size);
@@ -349,5 +349,13 @@ namespace log {
 
     void late_initialize() {
         log_dev = new log_device("klog");
+    }
+
+    void enable_klog() {
+        log_dev->enable();
+    }
+
+    void disable_klog() {
+        log_dev->disable();
     }
 }

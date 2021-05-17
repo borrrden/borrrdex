@@ -2,6 +2,8 @@
 
 #include <bootloader_defs.h>
 #include <stdint.h>
+#include <ref_counted.hpp>
+#include <mm/vm_object.h>
 
 namespace video {
     void initialize(video_mode_t video_mode , module::psf1_font_t* font);
@@ -13,4 +15,5 @@ namespace video {
     void draw_bitmap(unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint8_t *data);
 
     video_mode_t get_video_mode();
+    kstd::ref_counted<mm::vm_object> get_framebuffer_vmo();
 }

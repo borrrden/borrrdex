@@ -11,6 +11,8 @@ namespace log {
     void warning(const char* __restrict format, ...);
 
     void late_initialize();
+    void enable_klog();
+    void disable_klog();
 
     #ifdef KERNEL_DEBUG
     __attribute__((always_inline)) inline static void debug(const int& var, const int lvl, const char* __restrict fmt, ...) {
