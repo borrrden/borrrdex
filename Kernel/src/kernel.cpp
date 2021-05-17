@@ -62,7 +62,8 @@ extern "C" [[noreturn]] void idle_process() {
     scheduler::start_process(init_proc);
 
     while(true) {
-        asm("hlt");
+        scheduler::gc();
+        scheduler::get_current_thread()->sleep(1000000);
     }
 }
 

@@ -31,6 +31,7 @@ namespace scheduler {
 
     list<process_t *>* processes;
     list<process_t *>* dead_processes;
+    lock_t dead_process_lock = 0;
 
     pid_t next_pid = 1;
 
@@ -345,10 +346,9 @@ namespace scheduler {
             c->current_thread = c->idle_process->threads.get(0);
         } else {
             if(__builtin_expect(c->current_thread->state == thread_state::dying, 0)) {
-                for(auto* thread : c->run_queue) {
-                    c->run_queue.erase(c->run_queue.iterator_to(thread));
-                    delete thread;
-                }
+                c->run_queue.erase(c->run_queue.iterator_to(c->current_thread));
+                c->run_queue_count--;
+                c->current_thread = c->idle_process->threads[0];
             } else if(__builtin_expect(c->current_thread->parent != c->idle_process, 1)) {
                 asm volatile("fxsave64 (%0)" :: "r"((uintptr_t)c->current_thread->fx_state) : "memory");
                 c->current_thread->registers = *regs;
@@ -384,6 +384,32 @@ namespace scheduler {
         insert_new_thread(proc->threads.get(0));
     }
 
+    static void remove_threads(process_t* proc, cpu* c) {
+        auto current = c->run_queue.begin();
+        auto to_remove =  c->run_queue.end();
+        while(current !=  c->run_queue.end()) {
+            if(to_remove !=  c->run_queue.end()) {
+                c->run_queue.erase(to_remove);
+                c->run_queue_count--;
+                delete *to_remove;
+                to_remove = c->run_queue.end();
+            }
+
+            if(*current != c->current_thread && (*current)->parent == proc) {
+                to_remove = current;
+            }
+
+            current++;
+        }
+
+        if(to_remove !=  c->run_queue.end()) {
+            c->run_queue.erase(to_remove);
+            c->run_queue_count--;
+            delete *to_remove;
+            to_remove = c->run_queue.end();
+        }
+    }
+
     void end_process(process_t* proc) {
         IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
             log::info("Ending process: %s (%d)", proc->name, proc->pid);
@@ -394,15 +420,14 @@ namespace scheduler {
         for(auto thread : proc->threads) {
             if(thread != c->current_thread && thread) {
                 thread->state = thread_state::zombie;
-            }
-
-            if(acquire_test_lock(&thread->lock) != 0) {
-                // Unable to get lock, put the thread back
-                running_threads.add(thread);
-            } else {
-                // Stop the thread from running further
-                thread->state = thread_state::blocked;
-                thread->time_slice = thread->time_slice_default = 0;
+                if(acquire_test_lock(&thread->lock) != 0) {
+                    // Unable to get lock, put the thread back
+                    running_threads.add(thread);
+                } else {
+                    // Stop the thread from running further
+                    thread->state = thread_state::blocked;
+                    thread->time_slice = thread->time_slice_default = 0;
+                }
             }
         }
 
@@ -428,7 +453,8 @@ namespace scheduler {
                 break;
             }
 
-            // TODO: Sleep
+            // Sleep 50 ms so a deadlock does not ravage the CPU
+            scheduler::get_current_thread()->sleep(50000);
         }
 
         IF_DEBUG(debug_level_scheduler >= debug::LEVEL_VERBOSE, {
@@ -438,11 +464,7 @@ namespace scheduler {
         acquire_lock(&c->run_queue_lock);
         asm("cli");
 
-        while(c->run_queue_count) {
-            auto it = c->run_queue.pop_front();
-            delete it;
-            c->run_queue_count--;
-        }
+        remove_threads(proc, c);
 
         release_lock(&c->run_queue_lock);
         asm("sti");
@@ -461,28 +483,7 @@ namespace scheduler {
                 // Spin for a few ms
             }
 
-            auto current = other->run_queue.begin();
-            auto to_remove = other->run_queue.end();
-            while(current != other->run_queue.end()) {
-                if(to_remove != other->run_queue.end()) {
-                    other->run_queue.erase(to_remove);
-                    delete *to_remove;
-                    to_remove = other->run_queue.end();
-                }
-
-                if((*current)->parent == proc) {
-                    to_remove = current;
-                }
-
-                current++;
-                other->run_queue_count--;
-            }
-
-            if(to_remove != other->run_queue.end()) {
-                other->run_queue.erase(to_remove);
-                delete *to_remove;
-                to_remove = other->run_queue.end();
-            }
+            remove_threads(proc, other);
 
             release_lock(&other->run_queue_lock);
             asm("sti");
@@ -517,6 +518,25 @@ namespace scheduler {
             c->current_thread->time_slice = 0;
             asm volatile("sti; int $0xFD"); // Send IPI_SCHEDULE to self via interrupt
             assert(!"Failed to exit process, overran interrupt");
+        }
+    }
+
+    void yield() {
+        cpu* c = get_cpu_local();
+        if(c->current_thread) {
+            c->current_thread->time_slice = 0;
+        }
+
+        asm("int $0xFD");
+    }
+
+    void gc() {
+        kstd::lock l(dead_process_lock);
+        for(int i = dead_processes->size() - 1; i >= 0; i--) {
+            process_t* p = dead_processes->get(i);
+            delete p->address_space;
+            delete p;
+            dead_processes->remove(i);
         }
     }
 }

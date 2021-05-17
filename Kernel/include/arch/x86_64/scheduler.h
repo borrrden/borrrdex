@@ -102,7 +102,11 @@ typedef struct proc {
     ALWAYS_INLINE void destroy_all_files() {
         kstd::lock l(_file_desc_lock);
         for(auto fd : _file_descriptors) {
-            fd->node->close();
+            if(fd && fd->node) {
+                fd->node->close();
+                fd->node = nullptr;
+            }
+
             delete fd;
         }
 
@@ -123,6 +127,10 @@ namespace scheduler {
 
     void start_process(process_t* proc);
     void end_process(process_t* proc);
+
+    void yield();
+
+    void gc();
 
     process_t* create_elf_process(void* elf, int argc = 0, char** argv = nullptr, 
         int envc = 0, char** envp = nullptr, const char* exec_path = nullptr);

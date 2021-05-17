@@ -166,6 +166,11 @@ static void pic_init() {
     port_write_8(PIC1_INT_MASK_REGISTER, 0x0);
 }
 
+static void halt_handler(void*, register_context*) {
+    asm("cli");
+    asm("hlt");
+}
+
 int last_err_code = 0;
 
 void idt::initialize() {
@@ -232,6 +237,8 @@ void idt::initialize() {
     set_gate(45, (uint64_t)irq13, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
     set_gate(46, (uint64_t)irq14, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
     set_gate(47, (uint64_t)irq15, GDT_SELECTOR_KERNEL_CODE, IDT_DESC_PRESENT | IDT_DESC_INT32);
+
+    register_interrupt_handler(IPI_HALT, halt_handler);
 
     syscall_init();
 }
