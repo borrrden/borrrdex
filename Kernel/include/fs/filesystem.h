@@ -47,6 +47,16 @@ namespace fs {
     constexpr uint8_t DT_SOCK       = 12;
     constexpr uint8_t DT_WHT        = 14;
 
+    // Filesystem events
+    constexpr uint8_t POLLIN        = 0x01;
+    constexpr uint8_t POLLOUT       = 0x02;
+    constexpr uint8_t POLLPRI       = 0x04;
+    constexpr uint8_t POLLHUP       = 0x08;
+    constexpr uint8_t POLLERR       = 0x10;
+    constexpr uint8_t POLLRDHUP     = 0x20;
+    constexpr uint8_t POLLNVAL      = 0x40;
+    constexpr uint8_t POLLWRNORM    = 0x80;
+
     class fs_node;
     class fs_volume;
 

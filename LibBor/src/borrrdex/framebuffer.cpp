@@ -4,7 +4,7 @@
 #include <borrrdex/syscall.h>
 
 long borrdex_map_framebuffer(void** ptr, fb_info_t& fb_info) {
-    syscalln2(SYSCALL_MAP_FB, (uintptr_t)ptr, (uint64_t)&fb_info);
+    return syscalln2(SYSCALL_MAP_FB, (uintptr_t)ptr, (uint64_t)&fb_info);
 }
 
 surface_t* create_framebuffer_surface() {

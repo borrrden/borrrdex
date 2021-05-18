@@ -98,12 +98,16 @@ add_executable(
     src/fs/directory_entry.cpp
     src/fs/fs_node.cpp
     src/fs/fs_volume.cpp
+    src/fs/fs_blocker.cpp
     src/fs/tar.cpp
     src/logging.cpp
     src/kstring.cpp
     src/kassert.cpp
     src/kernel.cpp
     src/device.cpp
+    src/lock.cpp
+    src/pty.cpp
+    src/char_buffer.cpp
 )
 
 target_compile_options(
@@ -129,6 +133,7 @@ target_include_directories(
     include
     include/arch/x86_64
     ../LibC/subprojects/frigg/include
+    ../LibBor/include/
 )
 
 set_source_files_properties(

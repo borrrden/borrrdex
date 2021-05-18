@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <liballoc/liballoc.h>
 #include <panic.h>
-#include <move.h>
+#include <kmove.h>
 
 template<typename T>
 class list {
@@ -112,12 +112,23 @@ public:
         return true;
     }
 
-    void remove(size_t index) {
+    T remove_at(size_t index) {
+        T item = _mem[index];
         for(size_t i = index; i < _size - 1; i++) {
             _mem[i] = _mem[i + 1];
         }
 
         _size--;
+        return item;
+    }
+
+    void remove(T item) {
+        for(int i = 0; i < _size; i++) {
+            if(_mem[i] == item) {
+                remove_at(i);
+                return;
+            }
+        }
     }
 
     void clear() {

@@ -164,7 +164,7 @@ namespace video {
             memory::map_virtual_memory_4k(video_mode.physical_address, base, _size >> memory::PAGE_SHIFT_4K, map);
         }
 
-        [[noreturn]] mm::vm_object* clone() {
+        [[noreturn]] mm::vm_object* clone() override {
             assert(!"Framebuffer VMO cannot be cloned");
         }
     };

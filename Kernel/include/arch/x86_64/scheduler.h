@@ -8,7 +8,7 @@
 #include <timer.h>
 #include <paging.h>
 #include <thread.h>
-#include <lock.hpp>
+#include <lock.h>
 #include <mm/address_space.h>
 #include <cpu.h>
 #include <fs/filesystem.h>

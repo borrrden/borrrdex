@@ -12,6 +12,8 @@
 
 namespace fs {
     class directory_entry;
+    class fs_watcher;
+    class fs_blocker;
 
     class fs_node {
     public:
@@ -48,6 +50,14 @@ namespace fs {
         virtual bool can_read() const { return true; }
         virtual bool can_write() const { return true; }
 
+        virtual void watch(fs_watcher& watcher, int events);
+        virtual void unwatch(fs_watcher& watcher);
+
+        inline void lock() { acquire_lock(&_blocked_lock); }
+        inline bool try_lock() { return acquire_test_lock(&_blocked_lock) == 0; }
+        inline void unlock() { release_lock(&_blocked_lock); }
+        list<fs::fs_blocker *>* blocked() { return &_blocked; }
+
         virtual inline bool is_file() const { return (flags & FS_NODE_TYPE) == FS_NODE_FILE; }
         virtual inline bool is_dir() const { return (flags & FS_NODE_TYPE) == FS_NODE_DIRECTORY; }
         virtual inline bool is_block_dev() const { return (flags & FS_NODE_TYPE) == FS_NODE_BLKDEVICE; }
@@ -57,5 +67,7 @@ namespace fs {
     protected:
         fs_node* _link {nullptr};
         unsigned handle_count {0};
+        lock_t _blocked_lock {0};
+        list<fs::fs_blocker *> _blocked;
     };
 }

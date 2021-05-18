@@ -3,11 +3,16 @@
 #include <stdint.h>
 #include <system.h>
 #include <spinlock.h>
+#include <ref_counted.hpp>
 #include <abi-bits/pid_t.h>
 
 #include <frg/list.hpp>
 
 typedef struct proc process_t;
+
+namespace kstd {
+    class lock;
+}
 
 namespace threading {
     constexpr uint8_t DEFAULT_TIMESLICE = 10;
@@ -24,7 +29,11 @@ namespace threading {
         inline bool should_block() { return _should_block; }
         inline bool was_interrupted() { return _interrupted; }
 
+        inline void set_thread(thread* t) { _thread = t; }
+
+        kstd::ref_counted<kstd::lock> get_lock();
     protected:
+        lock_t _lock {0};
         thread* _thread {nullptr};
         bool _should_block {true};  // If unblock() is called before the thread is blocked or the lock is acquired then tell the thread not to block
         bool _interrupted {false};  // Returned by Block so the thread knows it has been interrupted
@@ -51,8 +60,8 @@ namespace threading {
         void* stack;
         void* stack_limit;
         void* kernel_stack;
-        uint32_t time_slice {0xFFFFFFFF};
-        uint32_t time_slice_default {0xFFFFFFFF};
+        uint32_t time_slice {0};
+        uint32_t time_slice_default {0};
         register_context registers;
         register_context last_syscall;
         void* fx_state;
@@ -67,12 +76,12 @@ namespace threading {
         pid_t tid {0};
 
         bool blocked_timeout {false};
-        
+        thread_blocker* blocker {nullptr};
 
         void sleep(long us);
 
-        void block(thread_blocker*);
-        void block(thread_blocker*, long& timeout_us);
+        [[nodiscard]] bool block(thread_blocker*);
+        [[nodiscard]] bool block(thread_blocker*, long& timeout_us);
         void unblock();
     };
 }

@@ -103,10 +103,10 @@ static void page_fault_handler(void*, register_context* regs) {
         fault_dump();
 
         log::info("Stack trace:");
-        log::info("[TODO]");
+        user_print_stack_trace(regs->rbp, process->address_space);
         log::info("End stack trace.");
 
-        // TODO: kill process
+        scheduler::end_process(process);
 
         return;
     }

@@ -1,6 +1,7 @@
 #include <fs/fs_node.h>
 #include <logging.h>
 #include <kerrno.h>
+#include <fs/fs_watcher.h>
 
 namespace fs {
     ssize_t fs_node::read(size_t off, size_t size, uint8_t* buf) {
@@ -91,5 +92,14 @@ namespace fs {
 
     void fs_node::sync() {
 
+    }
+
+    void fs_node::watch(fs_watcher& watcher, int events) {
+        log::warning("fs_node::watch called");
+        watcher.signal();
+    }
+
+    void fs_node::unwatch(fs_watcher& watcher) {
+        log::warning("fs_node::unwatch called");
     }
 }

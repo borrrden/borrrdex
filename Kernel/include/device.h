@@ -8,6 +8,7 @@ namespace devices {
         unknown,
         devfs,
         unix_pseudo,
+        unix_pseudo_terminal,
         kernel_log
     };
 

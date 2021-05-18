@@ -25,4 +25,5 @@ constexpr uint8_t SYSCALL_EXIT          = 6;
 constexpr uint8_t SYSCALL_MMAP          = 7;
 constexpr uint8_t SYSCALL_SET_FSBASE    = 8;
 constexpr uint8_t SYSCALL_MAP_FB        = 9;
-constexpr uint8_t NUM_SYSCALLS          = 10;
+constexpr uint8_t SYSCALL_GRANT_PTY     = 10;
+constexpr uint8_t NUM_SYSCALLS          = 11;

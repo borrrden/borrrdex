@@ -20,14 +20,22 @@ add_executable(
     ${FTERM_SRC}
 )
 
+target_include_directories(
+    fterm PRIVATE
+    ../LibC/options/posix/include
+    ../LibC/sysdeps/borrrdex/include
+    ../LibBor/include
+)
+
 target_compile_options(
     fterm PRIVATE
     ${SYSTEM_CXX_FLAGS}
 )
 
-target_link_options(
+target_link_libraries(
     fterm PRIVATE
-    "-lfreetype"
+    -lfreetype
+    -lbor
 )
 
 install(

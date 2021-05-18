@@ -1,0 +1,17 @@
+{
+    "C_Cpp.default.includePath": [
+        "include", 
+        "include/arch/x86_64", 
+        "../LibC/sysdeps/borrrdex/include",
+        "../LibC/subprojects/frigg/include",
+        "../LibC/options/posix/include",
+        "../LibC/options/ansi/include",
+        "../LibC/options/internal/include",
+        "src/lai/include",
+        "../LibBor/include",
+        "../LibBor/include/borrrdex/core/"
+    ],
+    "C_Cpp.default.compilerArgs": [
+        "-D__borrrdex__"
+    ]
+}

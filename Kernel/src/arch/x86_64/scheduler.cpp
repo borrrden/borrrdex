@@ -504,7 +504,7 @@ namespace scheduler {
 
         for(int i = 0; i < processes->size(); i++) {
             if(processes->get(i)->pid == proc->pid) {
-                processes->remove(i);
+                processes->remove_at(i);
                 break;
             }
         }
@@ -536,7 +536,7 @@ namespace scheduler {
             process_t* p = dead_processes->get(i);
             delete p->address_space;
             delete p;
-            dead_processes->remove(i);
+            dead_processes->remove_at(i);
         }
     }
 }

@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <paging.h>
 #include <ref_counted.hpp>
-#include <lock.hpp>
-#include <move.h>
+#include <lock.h>
+#include <kmove.h>
 
 namespace mm {
     constexpr uint64_t PHYS_BLOCK_MAX = (0xffffffff << memory::PAGE_SHIFT_4K);

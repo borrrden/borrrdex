@@ -132,7 +132,7 @@ namespace apic {
             log::debug(debug_level_interrupts, debug::LEVEL_NORMAL, "[APIC] I/O APIC Base 0x%x (0x%x), Available Interrupts: %d, ID: %d ",
                 base, virtual_base, interrupts, apic_id);
             
-            const auto* isos = acpi::int_source_overrides();
+            auto* isos = acpi::int_source_overrides();
             for(unsigned i = 0; i < isos->size(); i++) {
                 int_source_override_t* iso = isos->get(i);
                 log::debug(debug_level_interrupts, debug::LEVEL_VERBOSE, "[APIC] Interrupt Source Override, IRQ: %d, GSI: %d",

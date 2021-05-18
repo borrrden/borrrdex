@@ -6,11 +6,12 @@
 #include <abi-bits/vm-flags.h>
 #include <fcntl.h>
 #include <logging.h>
+#include <pty.h>
 #include <debug.h>
 #include <kstring.h>
 #include <fs/fs_node.h>
 #include <video/video.h>
-#include <framebuffer.h>
+#include <borrrdex/core/framebuffer.h>
 
 using thread_state = threading::thread::thread_state;
 
@@ -239,6 +240,21 @@ long sys_map_fb(register_context* regs) {
     return 0;
 }
 
+long sys_grant_pty(register_context* regs) {
+    if(!SC_ARG0(regs)) {
+        return 1;
+    }
+
+    pty::pty* p = pty::grant_pty();
+    process_t* proc = scheduler::get_current_process();
+    proc->replace_file_desc(0, p->open_worker());
+    proc->replace_file_desc(1, p->open_worker());
+    proc->replace_file_desc(2, p->open_worker());
+
+    *((int *)SC_ARG0(regs)) = proc->allocate_file_desc(p->open_controller());
+    return 0;
+}
+
 syscall_t syscalls[NUM_SYSCALLS] = {
     sys_log,
     sys_open,
@@ -249,7 +265,8 @@ syscall_t syscalls[NUM_SYSCALLS] = {
     sys_exit,
     sys_mmap,
     sys_set_fsbase,
-    sys_map_fb
+    sys_map_fb,
+    sys_grant_pty
 };
 
 extern "C" void syscall_handler(register_context* regs) {

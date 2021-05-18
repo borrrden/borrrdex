@@ -2,7 +2,7 @@
 
 #include <debug.h>
 #include <logging.h>
-#include <lock.hpp>
+#include <lock.h>
 #include <kassert.h>
 
 namespace mm {
@@ -31,7 +31,7 @@ namespace mm {
                 continue;
             }
 
-            if(address >= region.base() && address <= region.end()) {
+            if(address >= region.base() && address < region.end()) {
                 region.lock().acquire_read();
                 return &region;
             }

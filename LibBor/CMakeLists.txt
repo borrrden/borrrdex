@@ -1,5 +1,12 @@
 project(libbor)
 cmake_minimum_required(VERSION 3.10)
+enable_language(ASM_NASM)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON) 
+
+set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
+set(CMAKE_ASM_NASM_FLAGS "-g -F dwarf")
 
 set(
     BORRRDEX_C_ARGS
@@ -15,6 +22,9 @@ set(
 set(
     LIBBOR_SRC
     src/borrrdex/framebuffer.cpp
+    src/gfx/sse2.asm
+    src/gfx/graphics.cpp
+    src/gfx/font.cpp
 )
 
 add_library(
