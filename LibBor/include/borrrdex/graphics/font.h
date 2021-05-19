@@ -4,6 +4,7 @@
 #include FT_FREETYPE_H
 
 #include <exception>
+#include <memory>
 
 namespace borrrdex::graphics {
     struct font {
@@ -45,7 +46,7 @@ namespace borrrdex::graphics {
     };
 
     void initialize_fonts();
-    font* load_font(const char* path, const char* id = nullptr, int sz = 10);
-    font* get_font(const char* id);
-    font* default_font();
+    const font& load_font(const char* path, const char* id = nullptr, int sz = 10);
+    const font& get_font(const char* id);
+    const font& default_font();
 }
