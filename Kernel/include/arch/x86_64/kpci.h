@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <device.h>
 
 typedef struct {
     uint16_t vendor_id;
@@ -63,4 +64,6 @@ typedef struct {
 
 namespace pci {
     void initialize();
+
+    const pci_header_t* get_generic_device(uint16_t class_code, uint16_t subclass, int index);
 }

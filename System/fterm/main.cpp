@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <borrrdex/core/framebuffer.h>
+#include <borrrdex/graphics/font.h>
 #include <borrrdex/graphics/graphics.h>
 #include <borrrdex/syscall.h>
 #include <unistd.h>
@@ -23,7 +24,9 @@ int main(int argc, char** argv) {
     char buf[256];
     int len = read(pty, buf, 256);
 
+    font f = default_font();
     draw_rect(0, 0, render.width, render.height, 128, 128, 128, &render);
+    draw_string(buf, 10, 10, 0, 0, 0, &render, &f);
     surface_copy(&fb, &render);
 
     return 0;

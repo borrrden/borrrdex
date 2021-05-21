@@ -280,6 +280,7 @@ namespace memory {
         kernel_pml4_phys = (uint64_t)kernel_pml4 - KERNEL_VIRTUAL_BASE;
         asm("mov %%rax, %%cr3" :: "a"(kernel_pml4_phys));
     }
+    
     void* kernel_allocate_4k_pages(uint64_t amount) {
         uint64_t offset = 0, page_dir_offset = 0, counter = 0, address = 0;
 

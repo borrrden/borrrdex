@@ -14,7 +14,7 @@ namespace fs {
         directory_entry(fs_node* node, const char* name);
 
         const char* name() const { return _name; }
-        void set_name(const char* name) { strncpy(_name, name, NAME_MAX); }
+        void set_name(const char* name, size_t len = 0) { strncpy(_name, name, len > 0 ? len + 1 : NAME_MAX); }
 
         static mode_t file_to_dirent_flags(mode_t flags);
 

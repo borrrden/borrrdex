@@ -19,3 +19,7 @@ const int debug_user_mm = 0;
 const int debug_level_filesystem = 0;
 
 const int debug_level_scheduler = 0;
+
+const int debug_level_partitions = 0;
+
+const int debug_level_ext2 = 0;

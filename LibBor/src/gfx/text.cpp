@@ -80,6 +80,10 @@ namespace borrrdex::graphics {
             max_height = surface->height - y;
         }
 
+        if(font_state != 1 || !font->face) {
+            initialize_fonts();
+        }
+
         unsigned int last_glyph = 0;
         int x_off = 0;
         while(*str) {
@@ -134,6 +138,11 @@ namespace borrrdex::graphics {
                     }
                 }
             }
+
+            x_off += font->face->glyph->advance.x >> 6;
+            str++;
         }
+
+        return x_off - x;
     }
 }

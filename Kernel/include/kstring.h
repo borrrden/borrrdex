@@ -11,6 +11,7 @@ extern "C" {
     int strcmp(const char *a, const char *b);
     int strncmp(const char *a, const char *b, size_t max);
     char* strncpy(char* dst, const char* src, size_t max);
+    char *strncat(char *__restrict dest, const char *__restrict src, size_t max_size);
     size_t strnlen(const char*, size_t);
     char* strtok(char* __restrict str, const char* __restrict delim);
     char* strtok_r(char* __restrict str, const char* __restrict delim, char** __restrict saveptr);

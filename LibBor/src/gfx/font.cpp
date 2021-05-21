@@ -22,7 +22,7 @@ namespace borrrdex::graphics {
     static std::map<std::string, font>* fonts; //Don't rely on initialization order for this
 
     __attribute__((constructor))
-    void intialize_fonts() {
+    void initialize_fonts() {
         font_state = -1;
         if(FT_Init_FreeType(&library)) {
             printf("Error initializing freetype\n");
@@ -98,6 +98,10 @@ namespace borrrdex::graphics {
     }
 
     const font& default_font() {
+        if(font_state != 1) {
+            initialize_fonts();
+        }
+        
         return main_font;
     }
 }

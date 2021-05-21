@@ -66,7 +66,7 @@ namespace fs {
         virtual inline bool is_socket() const { return (flags & FS_NODE_TYPE) == FS_NODE_SOCKET; }
     protected:
         fs_node* _link {nullptr};
-        unsigned handle_count {0};
+        unsigned _handle_count {0};
         lock_t _blocked_lock {0};
         list<fs::fs_blocker *> _blocked;
     };

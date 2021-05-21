@@ -118,6 +118,19 @@ extern "C" {
         return dst;
     }
 
+    char *strncat(char *__restrict dest, const char *__restrict src, size_t max_size) {
+        auto dest_bytes = static_cast<char *>(dest);
+        auto src_bytes = static_cast<const char *>(src);
+        dest_bytes += strnlen(dest, max_size);
+        size_t i = 0;
+        while(*src_bytes && i < max_size) {
+            *(dest_bytes++) = *(src_bytes++);
+            i++;
+        }
+        *dest_bytes = 0;
+        return dest;
+    }
+
     size_t strnlen(const char *str, size_t maxlen) {
         size_t i = 0;
         while(str[i] && maxlen--) {

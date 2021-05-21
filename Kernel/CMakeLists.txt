@@ -97,9 +97,15 @@ add_executable(
     src/fs/filesystem.cpp
     src/fs/directory_entry.cpp
     src/fs/fs_node.cpp
-    src/fs/fs_volume.cpp
     src/fs/fs_blocker.cpp
     src/fs/tar.cpp
+    src/fs/ext2.cpp
+    src/storage/ahci_controller.cpp
+    src/storage/ahci_port.cpp
+    src/storage/ahci.cpp
+    src/storage/disk_device.cpp
+    src/storage/gpt.cpp
+    src/storage/partition_device.cpp
     src/logging.cpp
     src/kstring.cpp
     src/kassert.cpp

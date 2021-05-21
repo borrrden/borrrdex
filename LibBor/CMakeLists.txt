@@ -25,6 +25,7 @@ set(
     src/gfx/sse2.asm
     src/gfx/graphics.cpp
     src/gfx/font.cpp
+    src/gfx/text.cpp
 )
 
 add_library(

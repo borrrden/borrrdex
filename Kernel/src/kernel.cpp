@@ -12,6 +12,7 @@
 #include <symbols.h>
 #include <scheduler.h>
 #include <device.h>
+#include <storage/ahci.h>
 
 const char* version = "Borrrdex x86_64";
 
@@ -30,6 +31,8 @@ extern "C" [[noreturn]] void idle_process() {
 }
 
 [[noreturn]] void kernel_process() {
+    ahci::initialize();
+
     if(fs::fs_node* node = fs::resolve_path("/system/lib")) {
         fs::register_volume(new fs::link_volume(node, "lib"), false);
     } else {

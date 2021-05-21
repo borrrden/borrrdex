@@ -41,8 +41,15 @@ namespace fs {
         volumes = new list<fs_volume *>();
     }
 
-    const list<fs_volume *>* get_volumes() {
-        return volumes;
+    bool has_system_volume() {
+        for(int i = 0; i < volumes->size(); i++) {
+            auto* vol = volumes->get(i);
+            if(strncmp("system", vol->mount_point_entry().name(), 7) == 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     fs_node* get_root() {

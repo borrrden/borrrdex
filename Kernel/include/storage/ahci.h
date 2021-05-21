@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <device.h>
+#include <klist.hpp>
 
 namespace ahci {
     // ATA-ACS8 Commands, pieced together from the Internet since all sources
@@ -205,7 +207,7 @@ namespace ahci {
     constexpr uint32_t PXDEVSLP_DSP_FLAG            = 1 << 1;
     constexpr uint32_t PXDEVSLP_ADSE_FLAG           = 1 << 0;
 
-    void initialize();
+    int initialize();
 }
 
 // AHCI Port Register (Serial ATA AHCI 1.3.1 p. 22)
@@ -418,4 +420,227 @@ enum SATAInterfaceSpeed : uint8_t {
     gen1_1_5 = 1,
     gen2_3_0 = 2,
     gen3_6_0 = 3
+};
+
+enum ipm_status : uint8_t {
+    not_present,
+    active,
+    partial,
+    slumber = 6,
+    dev_sleep = 8
+};
+
+enum device_detection_status : uint8_t {
+    not_detected,
+    no_phy_comm,
+    phy_comm = 3,
+    phy_offline
+};
+
+// Serial ATA 3.0 (p. 384)
+typedef struct {
+    // DW 0
+    uint8_t fis_type;
+    uint8_t port_multiplier:4;
+    uint8_t reserved0:3;
+    uint8_t is_command:1;
+    uint8_t cmd_register;
+    uint8_t feature_low;
+
+    // DW 1
+    uint8_t lba0;
+    uint8_t lba1;
+    uint8_t lba2;
+    uint8_t device;
+
+    // DW 2
+    uint8_t lba3;
+    uint8_t lba4;
+    uint8_t lba5;
+    uint8_t feature_high;
+
+    // DW 3
+    uint16_t count;
+    uint8_t icc;
+    uint8_t control;
+
+    // DW 4
+    uint32_t reserved1;
+} fis_reg_h2d_t;
+static_assert(sizeof(fis_reg_h2d_t) == 5 * sizeof(uint32_t));
+
+typedef struct {
+    // DW 0
+    uint8_t fis_type;
+    uint8_t port_multiplier:4;
+    uint8_t reserved0:1;
+    uint8_t direction:1;
+    uint8_t interrupt:1;
+    uint8_t auto_activate:1;
+    uint16_t reserved1;
+
+    // DW 1 - 2
+    uint64_t dma_buffer_id;
+
+    // DW 3
+    uint32_t reserved2;
+
+    // DW 4
+    uint32_t dma_buffer_offset;
+
+    // DW 5
+    uint32_t transfer_count;
+
+    // DW 6
+    uint32_t reserved;
+} __attribute__((packed)) fis_dma_setup_t;
+static_assert(sizeof(fis_dma_setup_t) == 7 * sizeof(uint32_t));
+
+typedef struct {
+    // DW 0
+    uint8_t fis_type;
+    uint8_t port_multiplier:4;
+    uint8_t reserved0:1;
+    uint8_t direction:1;
+    uint8_t interrupt:1;
+    uint8_t reserved1:1;
+    uint8_t status;
+    uint8_t error;
+
+    // DW 1
+    uint8_t lba0;
+    uint8_t lba1;
+    uint8_t lba2;
+    uint8_t device;
+
+    // DW 2
+    uint8_t lba3;
+    uint8_t lba4;
+    uint8_t lba5;
+    uint8_t reserved2;
+
+    // DW 3
+    uint16_t count;
+    uint8_t reserved3;
+    uint8_t e_status;
+
+    // DW 4
+    uint16_t transfer_count;
+    uint16_t reserved4;
+} fis_pio_setup_t;
+static_assert(sizeof(fis_pio_setup_t) == 5 * sizeof(uint32_t));
+
+typedef struct {
+    // DW 0
+    uint8_t fis_type;
+    uint8_t port_multiplier:4;
+    uint8_t reserved0:2;
+    uint8_t interrupt:1;
+    uint8_t reserved1:1;
+    uint8_t status;
+    uint8_t error;
+
+    // DW 1
+    uint8_t lba0;
+    uint8_t lba1;
+    uint8_t lba2;
+    uint8_t device;
+
+    // DW 2
+    uint8_t lba3;
+    uint8_t lba4;
+    uint8_t lba5;
+    uint8_t reserved2;
+
+    // DW 3
+    uint16_t count;
+    uint16_t reserved3;
+
+    // DW 4
+    uint32_t reserved4;
+} fis_reg_d2h_t;
+static_assert(sizeof(fis_reg_d2h_t) == 5 * sizeof(uint32_t));
+
+typedef struct {
+    // DW 0
+    uint8_t fis_type;
+    uint8_t port_multiplier:4;
+    uint8_t reserved0:2;
+    uint8_t interrupt:1;
+    uint8_t notification:1;
+    uint8_t status_lo:3;
+    uint8_t reserved1:1;
+    uint8_t status_hi:3;
+    uint8_t reserved2:1;
+    uint8_t error;
+
+    // DW 1
+    uint32_t protocol;
+} fis_device_bits_t;
+static_assert(sizeof(fis_device_bits_t) == 2 * sizeof(uint32_t));
+
+typedef struct {
+    fis_dma_setup_t dsfis;
+    uint32_t pad0;
+
+    fis_pio_setup_t psfis;
+    uint8_t pad1[12];
+
+    fis_reg_d2h_t rfis;
+    uint32_t pad2;
+
+    fis_device_bits_t sdbfis;
+
+    uint8_t ufis[64];
+
+    uint8_t reserved[0x100 - 0xA0];
+} __attribute__((packed)) hba_received_fis_t;
+static_assert(sizeof(hba_received_fis_t) == 0x100);
+
+typedef struct {
+    uint8_t command_fis_length:5;
+    uint8_t atapi:1;
+    uint8_t write:1;
+    uint8_t prefetchable:1;
+
+    uint8_t reset:1;
+    uint8_t bist:1;
+    uint8_t clear:1;
+    uint8_t reserved0:1;
+    uint8_t port_multiplier_port:4;
+
+    uint16_t prdt_entries;
+
+    volatile uint32_t pdtr_bytes_written;
+
+    uint64_t command_table_base;
+
+    uint32_t reserved1[4];
+} achi_hba_cmd_header_t;
+
+typedef struct {
+    uint64_t db_addr;
+    uint32_t reserved0;
+
+    uint32_t byte_count:22;
+    uint32_t reserved1:9;
+    uint32_t interrupt_on_complete:1;
+} hba_prdt_entry_t;
+
+typedef struct {
+    uint8_t command_fis[64];
+    uint8_t atapi_command[16];
+    uint8_t reserved[48];
+    hba_prdt_entry_t prdt_entries[0];
+} hba_cmd_tbl_t;
+
+enum fis_type : uint8_t {
+    reg_host_to_device      = 0x27,
+    reg_device_to_host      = 0x34,
+    dma_activate            = 0x39,
+    dma_setup               = 0x41,
+    data                    = 0x46,
+    builtin_self_test       = 0x58,
+    pio_setup               = 0x5F,
+    device_bits             = 0xA1
 };

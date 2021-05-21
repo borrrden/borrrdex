@@ -2,6 +2,7 @@
 
 #include <kmove.h>
 #include <stddef.h>
+#include <liballoc/liballoc.h>
 
 namespace kstd {
     template<typename T>
@@ -110,5 +111,26 @@ namespace kstd {
     private:
         T* _obj;
         unsigned* _refcount;
+    };
+
+    template<typename T>
+    class auto_free {
+    public:
+        auto_free(size_t count) 
+            :_mem((T*)malloc(sizeof(T) * count))
+        {
+
+        }
+
+        ~auto_free() {
+            free(_mem);
+        }
+
+        operator T*() {
+            return _mem;
+        }
+
+    private:
+        T* _mem;
     };
 }

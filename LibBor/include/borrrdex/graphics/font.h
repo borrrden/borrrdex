@@ -36,7 +36,9 @@ namespace borrrdex::graphics {
 
         }
 
-        const char* what() const noexcept override;
+        const char* what() const noexcept override {
+            return error_strings[_error_type];
+        }
 
     private:
         static const char* error_strings[];

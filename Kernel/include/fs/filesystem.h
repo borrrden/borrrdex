@@ -2,6 +2,7 @@
 
 #include <types.h>
 #include <klist.hpp>
+#include <lock.h>
 
 typedef int64_t ino_t;
 typedef uint64_t dev_t;
@@ -12,6 +13,8 @@ typedef int32_t nlink_t;
 typedef int64_t volume_id_t;
 
 namespace fs {
+    using fs_lock = kstd::read_write_lock;
+
     constexpr uint8_t  NAME_MAX     = 255;
     constexpr uint16_t PATH_MAX     = 4096;
     constexpr uint8_t  SYMLINK_MAX  = 10;
@@ -67,7 +70,7 @@ namespace fs {
     } fs_fd_t;
 
     void initialize();
-    const list<fs_volume *>* get_volumes();
+    bool has_system_volume();
     fs_node* get_root();
     void register_volume(fs_volume* vol, bool add_root = true);
 

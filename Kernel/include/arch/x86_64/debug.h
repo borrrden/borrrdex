@@ -24,3 +24,5 @@ extern const int debug_level_symbols;
 extern const int debug_user_mm;
 extern const int debug_level_filesystem;
 extern const int debug_level_scheduler;
+extern const int debug_level_partitions;
+extern const int debug_level_ext2;

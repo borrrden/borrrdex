@@ -11,10 +11,13 @@ namespace fs {
     public:
         virtual ~fs_volume() = default;
 
-        virtual void set_volume_id(volume_id_t id);
+        inline void set_volume_id(volume_id_t id) { _volume_id = id; }
+        inline volume_id_t get_volume_id() const { return _volume_id; }
 
         fs_node* mount_point() const { return _mount_point; }
         void set_mount_point(fs_node* mp) { _mount_point = mp; }
+
+        virtual int error() const { return 0; }
 
         directory_entry mount_point_entry() { return _mount_point_entry; }
         void set_mount_point_entry(const directory_entry &de) { _mount_point_entry = de; }

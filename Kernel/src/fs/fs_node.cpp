@@ -21,12 +21,12 @@ namespace fs {
         file_desc->mode = flags;
         file_desc->node = this;
 
-        handle_count++;
+        _handle_count++;
         return file_desc;
     }
 
     void fs_node::close() {
-        handle_count--;
+        _handle_count--;
     }
 
     int fs_node::read_dir(directory_entry*, uint32_t) {

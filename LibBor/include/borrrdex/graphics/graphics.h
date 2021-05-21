@@ -13,7 +13,12 @@ typedef struct {
 } __attribute__((packed)) bitmap_file_header_t;
 
 namespace borrrdex::graphics {
+    class font;
+    
     void draw_rect(int x, int y, int width, int height, uint8_t r, uint8_t g, uint8_t b, surface_t* surface);
+    int draw_char(char c, int x, int y, uint8_t r, uint8_t g, uint8_t b, surface_t* surface, font* font);
+    int draw_string(const char* str, int x, int y, uint8_t r, uint8_t g, uint8_t b, surface_t* surface, font* font);
+    
     void surface_copy(surface_t*, const surface_t*);
 
     static inline uint32_t alpha_blend(uint32_t old, uint8_t r, uint8_t g, uint8_t b, double opacity) {
