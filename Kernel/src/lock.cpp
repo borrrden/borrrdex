@@ -3,6 +3,8 @@
 #include <scheduler.h>
 
 namespace kstd {
+
+    
     bool semaphore::wait(long& timeout) {
         lock l(_lock);
         assert(check_interrupts());
@@ -13,7 +15,7 @@ namespace kstd {
             return scheduler::get_current_thread()->block(blocker, timeout);
         }
 
-        return false;
+        return true;
     }
 
     void semaphore::signal() {

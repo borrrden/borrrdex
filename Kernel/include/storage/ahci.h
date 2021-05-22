@@ -210,6 +210,11 @@ namespace ahci {
     int initialize();
 }
 
+struct page_entry {
+    uintptr_t phys;
+    void* virt;
+};
+
 // AHCI Port Register (Serial ATA AHCI 1.3.1 p. 22)
 typedef volatile struct ahci_hba_port {
     /*

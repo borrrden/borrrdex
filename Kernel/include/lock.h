@@ -24,7 +24,11 @@ namespace kstd {
 
     class semaphore {
     public:
-        semaphore(int val);
+        semaphore(int val) 
+            :_val(val)
+        {
+            
+        }
 
         inline void set_val(int val) { _val = val; }
         inline lock_t get_val() const { return _val; }

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     render.buffer = (uint8_t *)malloc(fb.width * fb.height * 4);
 
     syscalln1(SYSCALL_GRANT_PTY, (uintptr_t)&pty);
-    printf("Hello, World\n");
+    printf("Hello, World!\n");
 
     char buf[256];
     int len = read(pty, buf, 256);

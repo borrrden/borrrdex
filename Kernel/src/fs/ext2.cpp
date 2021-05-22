@@ -283,9 +283,9 @@ namespace fs {
         }
 
         uint32_t start_block_num = offset / _block_size;
-        uint32_t start_block_offset = offset % _block_size;;
-        uint32_t end_block_num = (offset + size) / _block_size;;
-        uint32_t end_block_size = (offset + size) % _block_size;;
+        uint32_t start_block_offset = offset % _block_size;
+        uint32_t end_block_num = kstd::intervals_needed(offset + size, (uint64_t)_block_size);
+        uint32_t end_block_size = (offset + size) % _block_size;
         uint32_t block_count = end_block_num - start_block_num;
         uint32_t block_list[block_count];
         auto success = find_data_blocks(node->ext2_inode(), start_block_num, end_block_num, block_list);
@@ -301,7 +301,7 @@ namespace fs {
             }
 
             if(i == 0) {
-                uint32_t first_size = _block_size - start_block_offset;
+                uint32_t first_size = kstd::min(_block_size - start_block_offset, (unsigned)size);
                 memcpy(b, data + start_block_offset, first_size);
                 b += first_size;
             } else if(i == block_count - 1) {

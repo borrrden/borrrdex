@@ -85,7 +85,7 @@ namespace borrrdex::graphics {
         }
 
         unsigned int last_glyph = 0;
-        int x_off = 0;
+        int x_off = x;
         while(*str) {
             if(*str == '\n') {
                 break;
@@ -129,12 +129,12 @@ namespace borrrdex::graphics {
 
                 for(; j < font->face->glyph->bitmap.width && (x_off + (long)j) < surface->width; j++) {
                     unsigned off = y_off + (j + x_off);
-                     unsigned char font_val = font->face->glyph->bitmap.buffer[i * font->face->glyph->bitmap.width + j];
+                    unsigned char font_val = font->face->glyph->bitmap.buffer[i * font->face->glyph->bitmap.width + j];
                     if(font_val == 255) {
-                        buffer[y_off + j + x] = color;
+                        buffer[off] = color;
                     } else if(font_val > 0) {
                         double color_val = (double)font_val / 255.0;
-                        buffer[y_off + j + x] = alpha_blend(buffer[y_off + j + x], r, g, b, color_val);
+                        buffer[off] = alpha_blend(buffer[off], r, g, b, color_val);
                     }
                 }
             }

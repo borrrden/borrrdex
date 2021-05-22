@@ -6,6 +6,7 @@
 #include <timer.h>
 #include <logging.h>
 #include <paging.h>
+#include <physical_allocator.h>
 #include <liballoc/liballoc.h>
 
 namespace ahci {
@@ -81,6 +82,15 @@ namespace ahci {
     {
         _device_name = "SATA Hard Disk";
 
+        for(int i = 0; i < 8; i++) {
+            _buffers[i] = {
+                .phys = memory::allocate_physical_block(),
+                .virt = memory::kernel_allocate_4k_pages(1)
+            };
+            
+            memory::kernel_map_virtual_memory_4k(_buffers[i].phys, (uint64_t)_buffers[i].virt, 1);
+        }
+
         switch(gpt::parse(this)) {
             case 0:
                 log::error("[ahci] disk has corrupted or non-existent GPT.  MBR disks are not supported.");
@@ -96,6 +106,35 @@ namespace ahci {
         initialize_partitions();
     }
 
+    ahci_port::~ahci_port() {
+        for(int i = 0; i < 8; i++) {
+            memory::kernel_free_4k_pages(_buffers[i].virt, 1);
+            memory::free_physical_block(_buffers[i].phys);
+        }
+    }
+
+    int ahci_port::acquire_buffer() {
+        if(!_buffer_semaphore.wait()) {
+            return -EINTR;
+        }
+
+        for(int i = 0; i < 8; i++) {
+            if(acquire_test_lock(&_buf_locks[i]) == 0) {
+                return i;
+            }
+        }
+
+        _buffer_semaphore.signal();
+        return -1;
+    }
+
+    void ahci_port::release_buffer(int index) {
+        assert(index < 8);
+
+        release_lock(&_buf_locks[index]);
+        _buffer_semaphore.signal();
+    }
+
     int ahci_port::read_disk_block(uint64_t lba, uint32_t count, void* buffer) {
         _registers->interrupt_status = -1;
         int slot = find_cmdslot(_registers, _slot_count);
@@ -103,19 +142,55 @@ namespace ahci {
             return -EBUSY;
         }
 
-        achi_hba_cmd_header_t* cmd_header = prepare_cmd_header(slot, count);
-        hba_cmd_tbl_t* cmd_tbl = (hba_cmd_tbl_t *)memory::get_io_mapping(cmd_header->command_table_base);
-        memset(cmd_tbl, 0, sizeof(hba_cmd_tbl_t) + sizeof(hba_prdt_entry_t) * cmd_header->prdt_entries);
-
-        uint64_t phys = memory::virtual_to_physical_addr((uint64_t)buffer) + sizeof(boundary_tag);
-        prepare_prdt_entries(cmd_tbl, phys, cmd_header->prdt_entries, count);
-
-        prepare_cmd_fis(cmd_tbl, ahci::IDE_COMMAND_DMA_READ_EX, lba, count);
-        if(issue_ahci_command(_registers, slot) == 0) {
-            return count;
+        int buffer_idx = acquire_buffer();
+        if(buffer_idx == -EINTR) {
+            return EINTR;
         }
 
-        return -1;
+        if(buffer_idx < 0 || buffer_idx > 7) {
+            return 4;
+        }
+
+        uintptr_t phys = _buffers[buffer_idx].phys;
+        uint32_t max_sectors = memory::PAGE_SIZE_4K / _block_size;
+
+        auto do_read = [&](uint32_t to_read) {
+            achi_hba_cmd_header_t* cmd_header = prepare_cmd_header(slot, to_read);
+            hba_cmd_tbl_t* cmd_tbl = (hba_cmd_tbl_t *)memory::get_io_mapping(cmd_header->command_table_base);
+            memset(cmd_tbl, 0, sizeof(hba_cmd_tbl_t) + sizeof(hba_prdt_entry_t) * cmd_header->prdt_entries);
+
+            prepare_prdt_entries(cmd_tbl, phys, cmd_header->prdt_entries, to_read);
+
+            prepare_cmd_fis(cmd_tbl, ahci::IDE_COMMAND_DMA_READ_EX, lba, to_read);
+            return issue_ahci_command(_registers, slot);
+        };
+
+        uint32_t remaining = count;
+        uint8_t* b = (uint8_t *)buffer;
+        while(remaining >= max_sectors) {
+            // Don't read more than the buffer can take
+            if(int e = do_read(max_sectors) != 0) {
+                release_buffer(buffer_idx);
+                return e;
+            }
+
+            memcpy(b, _buffers[buffer_idx].virt, max_sectors * _block_size);
+            b += max_sectors * _block_size;
+            lba += max_sectors;
+            remaining -= max_sectors;
+        }
+
+        if(remaining) {
+            if(int e = do_read(remaining) != 0) {
+                release_buffer(buffer_idx);
+                return e;
+            }
+
+            memcpy(b, _buffers[buffer_idx].virt, remaining * _block_size);
+        }
+
+        release_buffer(buffer_idx);
+        return count;
     }
 
     int ahci_port::write_disk_block(uint64_t lba, uint32_t count, void* buffer) {

@@ -29,12 +29,12 @@ namespace borrrdex::graphics {
             return;
         }
 
-        if(int err = FT_New_Face(library, "/system/borrrdex/fonts/sourcecodepro.ttf", 0, &main_font.face)) {
-            printf("Freetype Error (%d) loading font /system/borrrdex/fonts/sourcecodepro.ttf\n", err);
+        if(int err = FT_New_Face(library, "/system/borrrdex/fonts/notosans.ttf", 0, &main_font.face)) {
+            printf("Freetype Error (%d) loading font /system/borrrdex/fonts/notosans.ttf\n", err);
             return;
         }
 
-        main_font.height = 10;
+        main_font.height = 24;
         if(int err = FT_Set_Pixel_Sizes(main_font.face, 0, main_font.height / 72.f * 96)) {
             printf("Freetype Error (%d) Setting Font Size\n", err);
             return;
@@ -101,7 +101,7 @@ namespace borrrdex::graphics {
         if(font_state != 1) {
             initialize_fonts();
         }
-        
+
         return main_font;
     }
 }

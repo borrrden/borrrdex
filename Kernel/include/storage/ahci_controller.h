@@ -19,11 +19,6 @@ namespace ahci {
         bool register_achi_disk(ahci_hba_port_t* port, uint32_t index, uint8_t max_command_slots);
         bool identify_device(ahci_hba_port_t* port, uint32_t index, int slot_count);
 
-        struct page_entry {
-            uintptr_t phys;
-            void* virt;
-        };
-
         ahci_hba_mem_t* _abar;
         list<ahci_port *> _ports;
         page_entry _command_pages[32];

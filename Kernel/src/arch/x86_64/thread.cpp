@@ -42,7 +42,7 @@ namespace threading {
             nblocker->set_thread(this);
             if(!nblocker->should_block()) {
                 asm("sti");
-                return false;
+                return true;
             }
 
             blocker = nblocker;
@@ -66,7 +66,7 @@ namespace threading {
 
         auto lock = nblocker->get_lock();
         if(!nblocker->should_block()) {
-            return false;
+            return true;
         }
 
         blocked_timeout = false;
