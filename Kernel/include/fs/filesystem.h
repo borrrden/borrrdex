@@ -1,8 +1,8 @@
 #pragma once
 
-#include <types.h>
 #include <klist.hpp>
 #include <lock.h>
+#include <types.h>
 
 typedef int64_t ino_t;
 typedef uint64_t dev_t;

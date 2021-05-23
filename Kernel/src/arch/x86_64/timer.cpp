@@ -26,7 +26,7 @@ namespace timer {
         }
 
         pending_ticks++;
-        if(acquire_test_lock(&sleep_list_lock) == 0) {
+        if(acquire_test_lock(&sleep_list_lock)) {
             while(!sleeping.empty() && pending_ticks-- > 0) {
                 timer_event* evt = sleeping.front();
                 assert(evt);

@@ -3,7 +3,7 @@
 #include <fs/fs_volume.h>
 
 #include <logging.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <kstring.h>
 #include <kassert.h>
 #include <debug.h>

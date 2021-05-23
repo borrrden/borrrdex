@@ -1,7 +1,7 @@
 #include <abi.h>
 #include <idt.h>
 #include <stddef.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <scheduler.h>
 #include <abi-bits/vm-flags.h>
 #include <fcntl.h>
@@ -289,7 +289,7 @@ extern "C" void syscall_handler(register_context* regs) {
     }
     #endif
 
-    if(__builtin_expect(acquire_test_lock(&thread->lock), 0)) {
+    if(!__builtin_expect(acquire_test_lock(&thread->lock), true)) {
         while(true) {
             asm("hlt");
         }

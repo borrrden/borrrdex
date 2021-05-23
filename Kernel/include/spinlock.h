@@ -16,4 +16,4 @@ typedef volatile int lock_t;
 
 #define release_lock(lock) ({__sync_lock_release(lock); })
 
-#define acquire_test_lock(lock) ({int status; status = __sync_lock_test_and_set(lock, 1); status;})
+#define acquire_test_lock(lock) (!__sync_lock_test_and_set(lock, 1))

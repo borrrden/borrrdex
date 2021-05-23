@@ -2,11 +2,11 @@
 
 #include <spinlock.h>
 #include <stddef.h>
-#include <types.h>
 #include <fs/filesystem.h>
 
 #include <abi-bits/abi.h>
 #include <abi-bits/fcntl.h>
+#include <types.h>
 
 #include <type_traits>
 
@@ -54,7 +54,7 @@ namespace fs {
         virtual void unwatch(fs_watcher& watcher);
 
         inline void lock() { acquire_lock(&_blocked_lock); }
-        inline bool try_lock() { return acquire_test_lock(&_blocked_lock) == 0; }
+        inline bool try_lock() { return acquire_test_lock(&_blocked_lock); }
         inline void unlock() { release_lock(&_blocked_lock); }
         list<fs::fs_blocker *>* blocked() { return &_blocked; }
 

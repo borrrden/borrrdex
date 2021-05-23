@@ -1,6 +1,6 @@
 #include <fs/fs_node.h>
 #include <logging.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <fs/fs_watcher.h>
 
 namespace fs {

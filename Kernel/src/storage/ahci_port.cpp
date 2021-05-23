@@ -1,7 +1,7 @@
 #include <storage/ahci_port.h>
 #include <storage/gpt.h>
 #include <stddef.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <kstring.h>
 #include <timer.h>
 #include <logging.h>
@@ -119,7 +119,7 @@ namespace ahci {
         }
 
         for(int i = 0; i < 8; i++) {
-            if(acquire_test_lock(&_buf_locks[i]) == 0) {
+            if(acquire_test_lock(&_buf_locks[i])) {
                 return i;
             }
         }

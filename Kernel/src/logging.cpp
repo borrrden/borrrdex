@@ -4,7 +4,7 @@
 #include <device.h>
 #include <kmath.h>
 #include <idt.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <termios.h>
 
 constexpr uint16_t LADJUST =	0x0004;		/* left adjustment */

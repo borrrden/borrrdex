@@ -107,7 +107,7 @@ namespace kstd {
         }
 
         inline bool try_acquire_write() {
-            return _has_writer_lock || (_has_writer_lock = acquire_test_lock(&_write_lock));
+            return acquire_test_lock(&_write_lock);
         }
 
         inline void release_read() {
@@ -123,7 +123,5 @@ namespace kstd {
         lock_t _read_lock {0};
         lock_t _write_lock {0};
         unsigned _active_readers {0};
-
-        bool _has_writer_lock {false};
     };
 }

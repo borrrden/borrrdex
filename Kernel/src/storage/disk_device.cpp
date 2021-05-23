@@ -2,7 +2,7 @@
 #include <kstring.h>
 #include <fs/fs_volume.h>
 #include <fs/filesystem.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <fs/ext2.h>
 #include <frg/hash_map.hpp>
 #include <frg/std_compat.hpp>

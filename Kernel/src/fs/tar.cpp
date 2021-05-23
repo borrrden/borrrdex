@@ -1,6 +1,6 @@
 #include <fs/tar.h>
 #include <kstring.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 
 namespace fs::tar {
     constexpr char TAR_TYPE_FILE                    = '0';

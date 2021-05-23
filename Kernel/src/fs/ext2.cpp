@@ -2,9 +2,10 @@
 #include <liballoc/liballoc.h>
 #include <logging.h>
 #include <kmath.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 #include <ref_counted.hpp>
 #include <debug.h>
+#include <lru_cache.hpp>
 
 constexpr uint16_t EXT2_VALID_FS = 1;
 constexpr uint16_t EXT2_ERROR_FS = 2;
@@ -166,9 +167,34 @@ namespace fs {
         _mount_point_entry.set_name(name);
     }
 
-    int ext2_volume::read_block(uint32_t block_num, void* buffer) {
-        uint32_t sectors_per_block = _block_size / _partition->parent()->block_size();
-        return _partition->read_block(block_num * sectors_per_block, sectors_per_block, buffer);
+    int ext2_volume::read_block(uint32_t block_num, void* buffer, bool cache) {
+        if(block_num > _sb->block_count) {
+            return -1;
+        }
+
+        auto do_disk_read = [&](void* b) {
+            uint32_t sectors_per_block = _block_size / _partition->parent()->block_size();
+            return _partition->read_block(block_num * sectors_per_block, sectors_per_block, b);
+        };
+
+        
+        if(cache) {
+            uint8_t* cached_block;
+            if(!_block_cache.get(block_num, cached_block)) {
+                cached_block = (uint8_t *)malloc(_block_size);
+                if(int e = do_disk_read(cached_block) < 0) {
+                    free(cached_block);
+                    return e;
+                }
+
+                _block_cache.set(block_num, cached_block);
+            }
+
+            memcpy(buffer, cached_block, _block_size);
+            return 1;
+        } 
+        
+        return do_disk_read(buffer);
     }
 
     int ext2_volume::read_inode(ino_t num, ext2_inode_t& inode) {
@@ -219,7 +245,7 @@ namespace fs {
         if(index < max) {
             // Single indirect lookup
             index -= ext2::INODE_IND_BLOCK;
-            if(int e = read_block(inode.i_block[ext2::INODE_IND_BLOCK], block_buffer) < 0) {
+            if(int e = read_block(inode.i_block[ext2::INODE_IND_BLOCK], block_buffer, true) < 0) {
                 return e;
             }
 
@@ -230,7 +256,7 @@ namespace fs {
         if(index < max) {
             // Double indirect lookup
             index -= ext2::INODE_IND_BLOCK;
-            if(int e = read_block(inode.i_block[ext2::INODE_DIND_BLOCK], block_buffer) < 0) {
+            if(int e = read_block(inode.i_block[ext2::INODE_DIND_BLOCK], block_buffer, true) < 0) {
                 return e;
             }
 
@@ -252,21 +278,21 @@ namespace fs {
 
         // Triple indirect lookup
         index -= ext2::INODE_IND_BLOCK;
-        if(int e = read_block(inode.i_block[ext2::INODE_TIND_BLOCK], block_buffer) < 0) {
+        if(int e = read_block(inode.i_block[ext2::INODE_TIND_BLOCK], block_buffer, true) < 0) {
             return e;
         }
 
         uint32_t subindex = index / (entries_per_block * entries_per_block);
         uint32_t suboffset = index % (entries_per_block * entries_per_block);
         uint32_t* indirect = block_buffer + subindex;
-        if(int e = read_block(*indirect, block_buffer) < 0) {
+        if(int e = read_block(*indirect, block_buffer, true) < 0) {
             return e;
         }
 
         subindex = index / entries_per_block;
         suboffset = index % entries_per_block;
         indirect = block_buffer + subindex;
-        if(int e = read_block(*indirect, block_buffer) < 0) {
+        if(int e = read_block(*indirect, block_buffer, true) < 0) {
             return e;
         }
 
@@ -296,7 +322,7 @@ namespace fs {
         uint8_t* b = buffer;
         kstd::auto_free<uint8_t> data(_block_size);
         for(uint32_t i = 0; i < block_count; i++) {
-            if(int e = read_block(block_list[i], data) < 0) {
+            if(int e = read_block(block_list[i], data, true) < 0) {
                 return e;
             }
 
@@ -443,7 +469,7 @@ namespace fs {
             return nullptr;
         }
 
-        if(int e = read_block((uint32_t)block_num, buffer) < 0) {
+        if(int e = read_block((uint32_t)block_num, buffer, true) < 0) {
             log::warning("[ext2] Failed to read block %d", block_num);
             _error = DISK_READ_ERROR;
             return nullptr;
@@ -495,7 +521,7 @@ namespace fs {
                     return nullptr;
                 }
 
-                if(int e = read_block((uint32_t)block_num, buffer) < 0) {
+                if(int e = read_block((uint32_t)block_num, buffer, true) < 0) {
                     log::warning("[ext2] Failed to read block %d", block_num);
                     _error = DISK_READ_ERROR;
                     return nullptr;
@@ -515,18 +541,22 @@ namespace fs {
             return nullptr;
         }
 
-        // TODO: Caching
-        ext2_inode_t dirent_inode;
-        if(read_inode(ext2_dirent->inode, dirent_inode) < 0) {
-            log::error("[ext2] Failed to read inode of directory (inode %d) entry %s", ext2_dirent->inode, name);
-            return nullptr;
+        ext2_node* ret_node;
+        if(!_inode_cache.get(ext2_dirent->inode, ret_node)) {
+            ext2_inode_t dirent_inode;
+            if(read_inode(ext2_dirent->inode, dirent_inode) < 0) {
+                log::error("[ext2] Failed to read inode of directory (inode %d) entry %s", ext2_dirent->inode, name);
+                return nullptr;
+            }
+
+            IF_DEBUG(debug_level_ext2 >= debug::LEVEL_VERBOSE, {
+                log::info("[ext2] Opening inode %d, size: %d", ext2_dirent->inode, dirent_inode.i_size);
+            })
+
+            ret_node = new ext2_node(this, dirent_inode, ext2_dirent->inode);
+            _inode_cache.set(ext2_dirent->inode, ret_node);
         }
-
-        IF_DEBUG(debug_level_ext2 >= debug::LEVEL_VERBOSE, {
-            log::info("[ext2] Opening inode %d, size: %d", ext2_dirent->inode, dirent_inode.i_size);
-        })
-
-        ext2_node* ret_node = new ext2_node(this, dirent_inode, ext2_dirent->inode);
+        
         return ret_node;
     }
 

@@ -3,7 +3,7 @@
 #include <fs/fs_blocker.h>
 #include <scheduler.h>
 #include <thread.h>
-#include <kerrno.h>
+#include <abi-bits/errno.h>
 
 static cc_t c_cc_default[pty::NCCS]{
     4,          // VEOF

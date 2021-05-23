@@ -15,7 +15,7 @@ lock_t alloc_lock;
 extern "C" {
 
     int liballoc_lock() {
-        while(acquire_test_lock(&alloc_lock)) {
+        while(!acquire_test_lock(&alloc_lock)) {
             assert(check_interrupts());
         }
 

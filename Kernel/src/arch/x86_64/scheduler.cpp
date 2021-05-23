@@ -338,7 +338,7 @@ namespace scheduler {
             }
         }
 
-        if(__builtin_expect(acquire_test_lock(&c->run_queue_lock), 0)) {
+        if(!__builtin_expect(acquire_test_lock(&c->run_queue_lock), true)) {
             return;
         }
 
@@ -420,7 +420,7 @@ namespace scheduler {
         for(auto thread : proc->threads) {
             if(thread != c->current_thread && thread) {
                 thread->state = thread_state::zombie;
-                if(acquire_test_lock(&thread->lock) != 0) {
+                if(!acquire_test_lock(&thread->lock)) {
                     // Unable to get lock, put the thread back
                     running_threads.add(thread);
                 } else {
@@ -442,7 +442,7 @@ namespace scheduler {
                 }
 
                 still_alive = true;
-                if(acquire_test_lock(&thread->lock) == 0) {
+                if(acquire_test_lock(&thread->lock)) {
                     thread->state = thread_state::blocked;
                     thread->time_slice = thread->time_slice_default = 0;
                     running_threads.set(nullptr, i);

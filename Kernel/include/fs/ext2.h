@@ -4,6 +4,8 @@
 #include <fs/fs_volume.h>
 #include <fs/fs_node.h>
 #include <device.h>
+#include <lru_cache.hpp>
+#include <frg/std_compat.hpp>
 
 typedef struct {
     uint16_t i_mode;
@@ -272,8 +274,12 @@ namespace fs {
 
         int error() const override { return _error; }
     private:
+        using block_cache_t = kstd::lru_cache<ino_t, uint8_t*, frg::hash<ino_t>, frg::stl_allocator>;
+        using inode_cache_t = kstd::lru_cache<ino_t, ext2_node*, frg::hash<ino_t>, frg::stl_allocator>;
+
         int read_inode(ino_t num, ext2_inode_t& inode);
-        int read_block(uint32_t block, void* buffer);
+        int read_block(uint32_t block, void* buffer, bool cache = false);
+        
         int64_t find_data_blocks(const ext2_inode_t& inode, uint32_t start, uint32_t end, uint32_t* block_list);
         int64_t find_data_block(const ext2_inode_t& inode, uint32_t index);
         void sync_inode(const ext2_inode_t& ext2_inode, uint32_t inode);
@@ -288,6 +294,8 @@ namespace fs {
         ext2_block_group_desc_t* _block_groups;
         uint32_t _block_size;
         uint32_t _inode_size;
+        block_cache_t _block_cache {50, LRU_CACHE_C_FREE};
+        inode_cache_t _inode_cache {1600, LRU_CACHE_CPP_DELETE};
         int _error {0};
     };
 
