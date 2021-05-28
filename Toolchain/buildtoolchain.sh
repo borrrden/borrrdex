@@ -29,7 +29,7 @@ _unpack_binutils() {
 }
 
 _unpack_llvm() {
-    git clone https://github.com/borrrden/llvm-project --depth 1 --branch release/12.x $LLVM_SRC_DIR
+    git clone https://github.com/borrrden/llvm-project --depth 1 --branch release/11.x $LLVM_SRC_DIR
 }
 
 _unpack_limine(){
@@ -75,19 +75,10 @@ _build_limine(){
 }
 
 _prepare() {
-    echo "Todo"
-    # mkdir -p $BORRRDEX_SYSROOT/system/{include,lib,bin}
-    # CWD=$(pwd)
-    # pushd $BORRRDEXDIR/LibC
-
-    # mkdir -p build
-    # cd build
-
-    # meson --prefix=$BORRRDEX_SYSROOT/system --libdir=lib "-Dc_args=['-fno-stack-protector']" "-Dcpp_args=['-fno-stack-protector']" ..
-    # ninja install
-    # popd
-
-    # Figure out hosting later
+    mkdir -p $BORRRDEX_SYSROOT/system/{include,lib,bin}
+    pushd $BORRRDEX_SYSROOT/..| 
+    curl -L https://github.com/borrrden/borrrdex/releases/download/0.1/sysroot.tar.xz | tar -zxf -
+    popd
 }
 
 _binutils() {
@@ -116,8 +107,15 @@ _limine(){
 
 _build() {
     _prepare
-    cd $SPATH
-    _binutils
+	cd $SPATH
+	_binutils
+	cd $SPATH
+	_llvm
+	cd $SPATH
+	_limine
+	cd $SPATH
+	
+	echo "Binutils, LLVM and limine have been built."
 }
 
 if [ -z "$BORRRDEX_SYSROOT" -o -z "$TOOLCHAIN_PREFIX" ]; then
