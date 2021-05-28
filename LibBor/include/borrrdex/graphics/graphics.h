@@ -1,6 +1,7 @@
 #pragma once
 
 #include <borrrdex/graphics/surface.h>
+#include <borrrdex/graphics/types.h>
 
 #include <stdint.h>
 
@@ -16,8 +17,19 @@ namespace borrrdex::graphics {
     class font;
     
     void draw_rect(int x, int y, int width, int height, uint8_t r, uint8_t g, uint8_t b, surface_t* surface);
+    inline void draw_rect(int x, int y, int width, int height, rgba8888_t color, surface_t* surface) {
+        draw_rect(x, y, width, height, color.r, color.g, color.b, surface);
+    }
+
     int draw_char(char c, int x, int y, uint8_t r, uint8_t g, uint8_t b, surface_t* surface, font* font);
+    inline void draw_char(char c, int x, int y, rgba8888_t color, surface_t* surface, font* font) {
+        draw_char(c, x, y, color.r, color.g, color.b, surface, font);
+    }
+
     int draw_string(const char* str, int x, int y, uint8_t r, uint8_t g, uint8_t b, surface_t* surface, font* font);
+    inline void draw_string(const char* str, int x, int y, rgba8888_t color, surface_t* surface, font* font) {
+        draw_string(str, x, y, color.r, color.g, color.b, surface, font);
+    }
     
     void surface_copy(surface_t*, const surface_t*);
 

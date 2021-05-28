@@ -334,6 +334,7 @@ namespace fs {
                 memcpy(b, data, end_block_size);
             } else {
                 memcpy(b, data, _block_size);
+                b += _block_size;
             }
         }
 

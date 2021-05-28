@@ -220,6 +220,12 @@ namespace fs {
         fd->node = nullptr;
     }
 
+    int ioctl(fs_fd_t* handle, uint64_t cmd, uint64_t arg) {
+        assert(handle->node);
+
+        return handle->node->ioctl(cmd, arg);
+    }
+
     int root_node::read_dir(directory_entry* ent, uint32_t index) {
         if(index < fs::volumes->size()) {
             *ent = volumes->get(index)->mount_point_entry();

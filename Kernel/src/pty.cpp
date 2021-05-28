@@ -31,7 +31,7 @@ namespace pty {
         _worker_file.flags = fs::FS_NODE_CHARDEVICE;
         _controller.set_ignore_backspace(true);
         _worker.set_ignore_backspace(false);
-        _tios.c_cflag = ECHO | ICANON;
+        _tios.c_lflag = ECHO | ICANON;
 
         _controller_file.set_pty(this);
         _worker_file.set_pty(this);
@@ -285,6 +285,7 @@ namespace pty {
     pty* grant_pty() {
         char* name = (char *)malloc(5);
         name[3] = next_pty++;
+        name[4] = 0;
         strncpy(name, "pty", 3);
         return new pty(name);
     }

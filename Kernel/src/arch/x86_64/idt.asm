@@ -184,7 +184,6 @@ __syscall_handler:
     call syscall_handler
     pop rsp
     popaq
-    sti
     o64 sysret
 
 syscall_init:

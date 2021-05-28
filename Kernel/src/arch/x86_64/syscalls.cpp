@@ -10,8 +10,11 @@
 #include <debug.h>
 #include <kstring.h>
 #include <fs/fs_node.h>
+#include <fs/filesystem.h>
 #include <video/video.h>
 #include <borrrdex/core/framebuffer.h>
+#include <frg/random.hpp>
+#include <sys/ioctl.h>
 
 using thread_state = threading::thread::thread_state;
 
@@ -187,11 +190,11 @@ long sys_seek(register_context* regs) {
             return (handle->pos += SC_ARG1(regs));
         }
         case SEEK_END: {
-            if(handle->node->size - SC_ARG1(regs) < 0) {
+            if(SC_ARG1(regs) > 0 || SC_ARG1(regs) + handle->pos < 0) {
                 return -EINVAL;
             }
 
-            return (handle->pos = handle->node->size - SC_ARG1(regs));
+            return (handle->pos = handle->node->size + SC_ARG1(regs));
         }
         default:
             log::warning("sys_seek: invalid seek mode: %d, mode: %d", SC_ARG0(regs), SC_ARG2(regs));
@@ -255,6 +258,51 @@ long sys_grant_pty(register_context* regs) {
     return 0;
 }
 
+long sys_uptime(register_context* regs) {
+    uint64_t* seconds = (uint64_t*)SC_ARG0(regs);
+	uint64_t* milliseconds = (uint64_t*)SC_ARG1(regs);
+    if(seconds) {
+        *seconds = timer::get_system_uptime();
+    }
+
+    if(milliseconds) {
+        *milliseconds = timer::get_ticks() * 1000 / timer::get_frequency();
+    }
+
+    return 0;
+}
+
+long sys_ioctl(register_context* regs) {
+    uint64_t request = SC_ARG1(regs);
+    uint64_t arg = SC_ARG2(regs);
+    int* result = (int *)SC_ARG3(regs);
+
+    process_t* proc = scheduler::get_current_process();
+
+    if(result && !memory::check_usermode_pointer((uintptr_t)result, sizeof(int), proc->address_space)) {
+        log::warning("(%s): sys_ioctl: invalid result buffer: 0x%llx", proc->name, SC_ARG2(regs));
+        return -EFAULT;
+    }
+
+    fs::fs_fd_t* handle = proc->get_file_desc(SC_ARG0(regs));
+    if(!handle) {
+        log::warning("sys_ioctl: Invalid file descriptor: %d", SC_ARG0(regs));
+        return -EBADF;
+    }
+
+    if(request == FIOCLEX) {
+        handle->mode |= O_CLOEXEC;
+        return 0;
+    }
+
+    int ret = fs::ioctl(handle, request, arg);
+    if(result && ret > 0) {
+        *result = ret;
+    }
+
+    return ret;
+}
+
 syscall_t syscalls[NUM_SYSCALLS] = {
     sys_log,
     sys_open,
@@ -262,11 +310,13 @@ syscall_t syscalls[NUM_SYSCALLS] = {
     sys_write,
     sys_seek,
     sys_close,
+    sys_ioctl,
     sys_exit,
     sys_mmap,
     sys_set_fsbase,
     sys_map_fb,
-    sys_grant_pty
+    sys_grant_pty,
+    sys_uptime
 };
 
 extern "C" void syscall_handler(register_context* regs) {

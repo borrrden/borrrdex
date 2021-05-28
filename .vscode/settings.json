@@ -9,5 +9,11 @@
     },
     "C_Cpp.default.compilerArgs": [
         "-D__borrrdex__"
-    ]
+    ],
+    "C_Cpp.default.compilerPath": "/home/borrrden/.local/share/borrrdex/bin/clang++", 
+    "C_Cpp.default.includePath": [
+        "../LibC/options/posix/include",
+        "../LibC/sysdeps/borrrdex/include",
+        "../LibBor/include"
+    ],
 }

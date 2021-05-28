@@ -29,6 +29,7 @@ namespace apic {
 
     namespace io {
         void set_base(uintptr_t new_base);
+        void map_legacy_irq(uint8_t irq);
     }
 
     int initialize();

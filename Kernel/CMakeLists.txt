@@ -62,6 +62,13 @@ set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
 set(CMAKE_ASM_NASM_FLAGS "-g -F dwarf")
 set(CMAKE_EXECUTABLE_SUFFIX .elf)
 
+add_custom_target(
+    make_trampoline
+    COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/bintoelf.sh ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/x86_64/smptrampoline.asm ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o ${CMAKE_CURRENT_SOURCE_DIR}/include/arch/x86_64/ smptrampoline
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o
+    COMMENT "Assembling SMP trampoline..."
+)
+
 add_executable(
     kernel
     src/arch/x86_64/entry.asm
@@ -89,6 +96,7 @@ add_executable(
     src/arch/x86_64/tss.cpp
     src/arch/x86_64/tss.asm
     src/arch/x86_64/thread.cpp
+    src/arch/x86_64/keyboard.cpp
     src/video/video.cpp
     src/liballoc/liballoc.c
     src/liballoc/liballoc_internal.cpp
@@ -114,6 +122,11 @@ add_executable(
     src/lock.cpp
     src/pty.cpp
     src/char_buffer.cpp
+)
+
+add_dependencies(
+    kernel
+    make_trampoline
 )
 
 target_compile_options(
@@ -152,10 +165,4 @@ target_link_libraries(
     kernel PRIVATE
     lai
     ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o
-)
-
-add_custom_command(
-    TARGET kernel
-    PRE_BUILD
-    COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/bintoelf.sh ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/x86_64/smptrampoline.asm ${CMAKE_CURRENT_BINARY_DIR}/smptrampoline.bin.o ${CMAKE_CURRENT_SOURCE_DIR}/include/arch/x86_64/ smptrampoline
 )

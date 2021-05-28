@@ -22,6 +22,7 @@ namespace borrrdex::graphics {
 
         uint32_t color = 0xFF000000 | (r << 16) | (g << 8) | b;
         uint32_t* buffer = (uint32_t *)surface->buffer;
+
         if(int err = FT_Load_Char(font->face, c, FT_LOAD_RENDER)) {
             return 0;
         }

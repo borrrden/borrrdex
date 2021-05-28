@@ -12,7 +12,8 @@ namespace devices {
         unix_pseudo,
         unix_pseudo_terminal,
         kernel_log,
-        storage
+        storage,
+        legacy_hid
     };
 
     class device : public fs::fs_node {

@@ -13,6 +13,7 @@
 #include <scheduler.h>
 #include <device.h>
 #include <storage/ahci.h>
+#include <keyboard.h>
 
 const char* version = "Borrrdex x86_64";
 
@@ -136,8 +137,12 @@ extern "C" [[noreturn]] void kmain() {
     }
 
     load_symbols(symbol_file);
+    
     video::draw_string("Copyright 2021 Jim Borden", 2, video_mode.height - 20, 255, 255, 255);
     video::draw_string(version, 2, video_mode.height - 40, 255, 255, 255);
+
+    log::info("Initializing HID...");
+    keyboard::ps2_initialize();
 
     log::info("Initializing Task Scheduler...");
     scheduler::initialize();

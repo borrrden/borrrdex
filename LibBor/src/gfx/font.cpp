@@ -34,7 +34,7 @@ namespace borrrdex::graphics {
             return;
         }
 
-        main_font.height = 24;
+        main_font.height = 10;
         if(int err = FT_Set_Pixel_Sizes(main_font.face, 0, main_font.height / 72.f * 96)) {
             printf("Freetype Error (%d) Setting Font Size\n", err);
             return;
@@ -49,6 +49,7 @@ namespace borrrdex::graphics {
         strncpy(main_font.id, "default", 8);
 
         fonts = new std::map<std::string, font>();
+        fonts->insert({"default", main_font});
         font_state = 1;
     }
 
@@ -76,14 +77,11 @@ namespace borrrdex::graphics {
         f.height = f.pixel_height;
         f.line_height = f.face->size->metrics.height / 64;
         f.monospace = FT_IS_FIXED_WIDTH(f.face);
-        f.width = 8;
+        f.width = sz;
         f.tab_width = 4;
 
         assert(fonts);
         fonts->insert({f.id, f});
-
-        std::string foo;
-        std::vector<char> v(foo.begin(), foo.end());
 
         font_state = 1;
         return fonts->at(f.id);

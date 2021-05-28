@@ -22,6 +22,7 @@ set(
 set(
     LIBBOR_SRC
     src/borrrdex/framebuffer.cpp
+    src/borrrdex/input.cpp
     src/gfx/sse2.asm
     src/gfx/graphics.cpp
     src/gfx/font.cpp
@@ -47,6 +48,12 @@ install(
 install(
     FILES 
     include/borrrdex/core/framebuffer.h
+    include/borrrdex/core/input.h
+    include/borrrdex/core/keyboard.h
+    include/borrrdex/graphics/font.h
+    include/borrrdex/graphics/graphics.h
+    include/borrrdex/graphics/surface.h
+    include/borrrdex/graphics/types.h
     DESTINATION
     ${CMAKE_INSTALL_PREFIX}/include/borrrdex/core
 )

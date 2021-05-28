@@ -85,4 +85,5 @@ namespace fs {
     fs_fd_t* open(fs_node* node, uint32_t flags);
     void close(fs_node* node);
     void close(fs_fd_t* fd);
+    int ioctl(fs_fd_t* handle, uint64_t cmd, uint64_t arg);
 }

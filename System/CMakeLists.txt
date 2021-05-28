@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(
     FTERM_SRC
     fterm/main.cpp
-    #fterm/input.cpp
+    fterm/input.cpp
 )
 
 set(
@@ -34,7 +34,7 @@ target_compile_options(
 
 target_link_libraries(
     fterm PRIVATE
-    -lfreetype
+    -lfreetyped
     -lbor
 )
 

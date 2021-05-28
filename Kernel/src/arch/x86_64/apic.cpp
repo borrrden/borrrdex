@@ -142,6 +142,23 @@ namespace apic {
 
             return 0;
         }
+
+        void map_legacy_irq(uint8_t irq) {
+            if(debug_level_interrupts >= debug::LEVEL_VERBOSE) {
+                log::info("[apic] mapping legacy IRQ %u", irq);
+            }
+
+            const list<int_source_override_t *> *isos = acpi::int_source_overrides();
+            for(unsigned i = 0; i < isos->size(); i++) {
+                auto* iso = isos->get(i);
+                if(iso->source == irq) {
+                    // Already mapped!
+                    return;
+                }
+            }
+
+            redirect(irq, irq + 0x20, ICR_MESSAGE_TYPE_LOW_PRIORITY);
+        }
     }
 
     int initialize() {
