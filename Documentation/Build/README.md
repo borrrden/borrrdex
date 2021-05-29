@@ -60,5 +60,3 @@ This step will generate a 1GB disk image that is suitable for running the operat
 `make XXX`
 
 Now things are ready to use the top level makefile.  It has quite a few targets, but running `make all` will build all of them.  At the moment this builds the kernel, mlibc again, LibBor, and a userspace console program that will run as the initial process.
-
-[Details Here](Building-Final.md)
