@@ -30,4 +30,4 @@ The system partition is formatted as ext2 using the [`mkfs.ext2`](https://linux.
 ### Final Step
 ---------
 
-Once the disk is properly formatted, the EFI bootloader files that limine created are copied to the EFI partition in the proper locations, and `limine-install` is used to install the fallback MBR bootloader code. AFter this the disk image is ready to be used in future steps, and these steps do not need to be repeated. 
+Once the disk is properly formatted, the EFI bootloader files that limine created are copied to the EFI partition in the proper locations, and `limine-install-linux-x86_64` is used to install the fallback MBR bootloader code. AFter this the disk image is ready to be used in future steps, and these steps do not need to be repeated. 

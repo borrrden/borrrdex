@@ -11,6 +11,7 @@
 #include <kstring.h>
 #include <fs/fs_node.h>
 #include <fs/filesystem.h>
+#include <fs/pipe.h>
 #include <video/video.h>
 #include <borrrdex/core/framebuffer.h>
 #include <frg/random.hpp>
@@ -303,6 +304,249 @@ long sys_ioctl(register_context* regs) {
     return ret;
 }
 
+long sys_getuid(register_context* regs) {
+    return scheduler::get_current_process()->uid;
+}
+
+long sys_setuid(register_context* regs) {
+    auto proc = scheduler::get_current_process();
+    uid_t requested_id = SC_ARG0(regs);
+    if(proc->uid == requested_id) {
+        return 0;
+    }
+
+    if(proc->euid != 0) {
+        return -EPERM;
+    }
+
+    proc->uid = requested_id;
+    proc->euid = requested_id;
+    return 0;
+}
+
+long sys_getgid(register_context* regs) {
+    return scheduler::get_current_process()->gid;
+}
+
+long sys_setgid(register_context* regs) {
+    auto proc = scheduler::get_current_process();
+    uid_t requested_id = SC_ARG0(regs);
+    if(proc->gid == requested_id) {
+        return 0;
+    }
+
+    if(proc->euid != 0) {
+        return -EPERM;
+    }
+
+    proc->gid = requested_id;
+    proc->egid = requested_id;
+    return 0;
+}
+
+long sys_geteuid(register_context* regs) {
+    return scheduler::get_current_process()->euid;
+}
+
+long sys_seteuid(register_context* regs) {
+    auto proc = scheduler::get_current_process();
+    uid_t requested_id = SC_ARG0(regs);
+    if(proc->euid == requested_id) {
+        return 0;
+    }
+
+    if(proc->uid != 0 && proc->uid != requested_id) {
+        return -EPERM;
+    }
+
+    proc->euid = requested_id;
+    return 0;
+}
+
+long sys_getegid(register_context* regs) {
+    return scheduler::get_current_process()->egid;
+}
+
+long sys_setegid(register_context* regs) {
+    auto proc = scheduler::get_current_process();
+    uid_t requested_id = SC_ARG0(regs);
+    if(proc->egid == requested_id) {
+        return 0;
+    }
+
+    if(proc->uid != 0 && proc->gid != requested_id) {
+        return -EPERM;
+    }
+
+    proc->egid = requested_id;
+    return 0;
+}
+
+long sys_getpid(register_context* regs) {
+    return scheduler::get_current_process()->pid;
+}
+
+long sys_getppid(register_context* regs) {
+    auto* proc = scheduler::get_current_process();
+    return proc->parent ? proc->parent->pid : -1;
+}
+
+long sys_dup(register_context* regs) {
+    int fd = SC_ARG0(regs);
+    int requested_fd = SC_ARG2(regs);
+    if(fd == requested_fd) {
+        return -EINVAL;
+    }
+
+    auto current_proc = scheduler::get_current_process();
+    long flags = SC_ARG1(regs);
+    auto* handle = current_proc->get_file_desc(fd);
+    if(!handle) {
+        return -EBADF;
+    }
+
+    auto* new_handle = new fs::fs_fd_t();
+    *new_handle = *handle;
+    new_handle->node->add_handle();
+    if(flags & O_CLOEXEC) {
+        new_handle->mode |= O_CLOEXEC;
+    }
+
+    if(requested_fd >= 0) {
+        if((unsigned)requested_fd >= current_proc->file_desc_count()) {
+            log::error("sys_dup: Unallocated fd request not supported");
+            return -ENOSYS;
+        }
+
+        current_proc->destroy_file_desc(requested_fd);
+        if(current_proc->replace_file_desc(requested_fd, new_handle)) {
+            return -EBADF;
+        }
+
+        return requested_fd;
+    }
+
+    return current_proc->allocate_file_desc(new_handle);
+}
+
+long sys_get_fstat_flags(register_context* regs) {
+    auto* cur_process = scheduler::get_current_process();
+    fs::fs_fd_t* handle = cur_process->get_file_desc(SC_ARG0(regs));
+    return handle ? handle->mode : -EBADF;
+}
+
+long sys_set_fstat_flags(register_context* regs) {
+    auto* cur_process = scheduler::get_current_process();
+    fs::fs_fd_t* handle = cur_process->get_file_desc(SC_ARG0(regs));
+    if(!handle) {
+        return -EBADF;
+    }
+
+    int mask = (O_APPEND | O_NONBLOCK); // only these are supported
+    int flags = SC_ARG1(regs);
+    handle->mode = (handle->mode & ~mask) | (flags & mask);
+    return 0;
+}
+
+long sys_pipe(register_context* regs) {
+    int* fds = (int *)SC_ARG0(regs);
+    int flags = SC_ARG1(regs);
+    if(flags & ~(O_CLOEXEC | O_NONBLOCK)) {
+        log::debug(debug_level_syscalls, debug::LEVEL_NORMAL, "sys_pipe: Invalid flags %d", flags);
+        return -EINVAL;
+    }
+
+    auto* proc = scheduler::get_current_process();
+
+    fs::unix_pipe* read, *write;
+    fs::unix_pipe::create_pipe(read, write);
+
+    fs::fs_fd_t* read_handle = fs::open(read);
+    fs::fs_fd_t* write_handle = fs::open(write);
+    read_handle->mode = flags;
+    write_handle->mode = flags;
+
+    fds[0] = proc->allocate_file_desc(read_handle);
+    fds[1] = proc->allocate_file_desc(write_handle);
+
+    return 0;
+}
+
+long sys_fstat(register_context* regs) {
+    auto* proc = scheduler::get_current_process();
+    stat_t* stat = (stat_t *)SC_ARG0(regs);
+    fs::fs_fd_t* handle = proc->get_file_desc(SC_ARG1(regs));
+    if(!handle) {
+        log::warning("sys_fstat: Invalid file descriptor %d", SC_ARG1(regs));
+        return -EBADF;
+    }
+
+    fs::fs_node* const& node = handle->node;
+    stat->st_dev = 0;
+    stat->st_ino = node->inode;
+    stat->st_mode = 0;
+
+    if(node->is_dir()) stat->st_mode |= fs::S_IFDIR;
+    if(node->is_file()) stat->st_mode |= fs::S_IFREG;
+    if(node->is_block_dev()) stat->st_mode |= fs::S_IFBLK;
+    if(node->is_char_dev()) stat->st_mode |= fs::S_IFCHR;
+    if(node->is_symlink()) stat->st_mode |= fs::S_IFLNK;
+    if(node->is_socket()) stat->st_mode |= fs::S_IFSOCK;
+
+    stat->st_nlink = 0;
+    stat->st_uid = node->uid;
+    stat->st_gid = 0;
+    stat->st_rdev = 0;
+    stat->st_size = node->size;
+    stat->st_blksize = 0;
+    stat->st_blocks = 0;
+    return 0;
+}
+
+long sys_stat(register_context* regs) {
+    auto* proc = scheduler::get_current_process();
+    stat_t* stat = (stat_t *)SC_ARG0(regs);
+    const char* filepath = (const char*)SC_ARG1(regs);
+    uint64_t flags = SC_ARG2(regs);
+
+    if(!memory::check_usermode_pointer(SC_ARG0(regs), sizeof(stat_t), proc->address_space)) {
+        log::error("sys_stat: stat structure points to invalid address 0x%x", SC_ARG0(regs));
+        return -EINVAL;
+    }
+
+    if(!memory::check_usermode_pointer(SC_ARG1(regs), sizeof(stat_t), proc->address_space)) {
+        log::error("sys_stat: filepath points to invalid address %s", filepath);
+        return -EINVAL;
+    }
+
+    bool follow_symlinks = !(flags & AT_SYMLINK_NOFOLLOW);
+    fs::fs_node* node = fs::resolve_path(filepath, proc->working_dir, follow_symlinks);
+    if(!node) {
+        log::debug(debug_level_syscalls, debug::LEVEL_VERBOSE, "sys_stat: nonexistent filepath %s", filepath);
+        return -ENOENT;
+    }
+
+    stat->st_dev = 0;
+    stat->st_ino = node->inode;
+    stat->st_mode = 0;
+
+    if(node->is_dir()) stat->st_mode |= fs::S_IFDIR;
+    if(node->is_file()) stat->st_mode |= fs::S_IFREG;
+    if(node->is_block_dev()) stat->st_mode |= fs::S_IFBLK;
+    if(node->is_char_dev()) stat->st_mode |= fs::S_IFCHR;
+    if(node->is_symlink()) stat->st_mode |= fs::S_IFLNK;
+    if(node->is_socket()) stat->st_mode |= fs::S_IFSOCK;
+
+    stat->st_nlink = 0;
+    stat->st_uid = node->uid;
+    stat->st_gid = 0;
+    stat->st_rdev = 0;
+    stat->st_size = node->size;
+    stat->st_blksize = 0;
+    stat->st_blocks = 0;
+    return 0;
+}
+
 syscall_t syscalls[NUM_SYSCALLS] = {
     sys_log,
     sys_open,
@@ -316,7 +560,23 @@ syscall_t syscalls[NUM_SYSCALLS] = {
     sys_set_fsbase,
     sys_map_fb,
     sys_grant_pty,
-    sys_uptime
+    sys_uptime,
+    sys_getuid,
+    sys_setuid,
+    sys_getgid,
+    sys_setgid,
+    sys_geteuid,
+    sys_seteuid,
+    sys_getegid,
+    sys_setegid,
+    sys_getpid,
+    sys_getppid,
+    sys_dup,
+    sys_get_fstat_flags,
+    sys_set_fstat_flags,
+    sys_pipe,
+    sys_fstat,
+    sys_stat
 };
 
 extern "C" void syscall_handler(register_context* regs) {

@@ -53,6 +53,9 @@ namespace fs {
         virtual void watch(fs_watcher& watcher, int events);
         virtual void unwatch(fs_watcher& watcher);
 
+        void add_handle() { _handle_count++; }
+        void remove_handle() { _handle_count--; }
+
         inline void lock() { acquire_lock(&_blocked_lock); }
         inline bool try_lock() { return acquire_test_lock(&_blocked_lock); }
         inline void unlock() { release_lock(&_blocked_lock); }

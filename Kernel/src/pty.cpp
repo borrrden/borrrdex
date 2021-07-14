@@ -233,7 +233,7 @@ namespace pty {
                 break;
             case TIOCSATTR:
                 _pty->set_attr(*((termios *)arg));
-                _pty->set_ignore_backspace(device_type::worker, _pty->is_canonical());
+                _pty->set_ignore_backspace(device_type::worker, !_pty->is_canonical());
                 break;
             case TIOCFLUSH:
                 if(arg == TCIFLUSH || arg == TCIOFLUSH) {

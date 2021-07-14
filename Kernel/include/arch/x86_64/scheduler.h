@@ -20,6 +20,8 @@ typedef struct proc {
     list<threading::thread *> threads;
     uid_t uid {-1};
     uid_t gid {-1};
+    uid_t euid {-1};
+    uid_t egid {-1};
 
     proc* parent {nullptr};
     list<proc *> children;

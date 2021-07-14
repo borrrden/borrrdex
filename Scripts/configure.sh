@@ -40,3 +40,4 @@ cd ../../Ports
 ./buildport.sh libpng
 ./buildport.sh freetype
 ./buildport.sh libressl
+./buildport.sh ncurses

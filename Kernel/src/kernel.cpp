@@ -34,21 +34,21 @@ extern "C" [[noreturn]] void idle_process() {
 [[noreturn]] void kernel_process() {
     ahci::initialize();
 
-    // if(fs::fs_node* node = fs::resolve_path("/system/lib")) {
-    //     fs::register_volume(new fs::link_volume(node, "lib"), false);
-    // } else {
+    if(fs::fs_node* node = fs::resolve_path("/system/lib")) {
+        fs::register_volume(new fs::link_volume(node, "lib"), false);
+    } else {
         fs::fs_node* initrd = fs::resolve_path("/initrd");
         assert(initrd);
 
         fs::register_volume(new fs::link_volume(initrd, "lib"), false);
-    // }
+    }
 
     log::info("Loading init process...");
     fs::fs_node* initfs_node = nullptr;
     const char* argv[] = {"init"};
     int envc = 1;
     const char* envp[] = {"PATH=/initrd", nullptr};
-    if(!(initfs_node = fs::resolve_path("/system/borrrdex/init"))) {
+    if(!(initfs_node = fs::resolve_path("/system/bin/zsh"))) {
         initfs_node = fs::resolve_path("/initrd/fterm");
         if(!initfs_node) {
             const char* panic_reasons[] = { "Failed to load init or fterm" };

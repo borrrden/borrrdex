@@ -18,8 +18,9 @@ set(
     -nostdlib
     -mcmodel=large
     -mno-red-zone
-    -fno-pic
     -mno-mmx
+    -mno-80387 
+    -mno-3dnow
     -mno-sse
     -mno-sse2
     -fno-stack-protector
@@ -56,6 +57,8 @@ set(
     -m64
     -T ${CMAKE_CURRENT_SOURCE_DIR}/linkscript-x86_64.ld
     -z max-page-size=0x1000
+    -nostdlib
+    -static
 )
 
 set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
@@ -108,6 +111,7 @@ add_executable(
     src/fs/fs_blocker.cpp
     src/fs/tar.cpp
     src/fs/ext2.cpp
+    src/fs/pipe.cpp
     src/storage/ahci_controller.cpp
     src/storage/ahci_port.cpp
     src/storage/ahci.cpp
@@ -122,6 +126,7 @@ add_executable(
     src/lock.cpp
     src/pty.cpp
     src/char_buffer.cpp
+    src/stream.cpp
 )
 
 add_dependencies(

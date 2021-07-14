@@ -67,6 +67,9 @@ namespace scheduler {
         timer::get_system_uptime(&proc->creation_time);
         proc->parent = nullptr;
         proc->uid = 0;
+        proc->euid = 0;
+        proc->gid = 0;
+        proc->egid = 0;
         proc->pid = next_pid++;
 
         auto* thread = proc->threads.get(0);
@@ -148,6 +151,15 @@ namespace scheduler {
             stack_str -= len;
             temp_argv[i] = stack_str;
             strncpy(stack_str, argv[i], len);
+        }
+
+        if(envp) {
+            for(int i = 0; i < envc; i++) {
+                size_t len = strnlen(envp[i], fs::NAME_MAX) + 1;
+                stack_str -= len;
+                temp_envp[i] = stack_str;
+                strncpy(stack_str, envp[i], len);
+            }
         }
 
         char* exec_path_val = nullptr;

@@ -1,0 +1,12 @@
+diff -rub config.sub borrrdex-zsh/config.sub
+--- config.sub	2019-08-18 06:14:27.000000000 +0900
++++ borrrdex-zsh/config.sub	2021-06-06 14:09:24.173477600 +0900
+@@ -1368,7 +1368,7 @@
+ 	     | powermax* | dnix* | nx6 | nx7 | sei* | dragonfly* \
+ 	     | skyos* | haiku* | rdos* | toppers* | drops* | es* \
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+-	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi*)
++	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi* | borrrdex*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	qnx*)

@@ -578,7 +578,17 @@ namespace fs {
     }
 
     ssize_t ext2_volume::read_link(ext2_node* node, char* path_buffer, size_t size) {
-        return -ENOSYS;
+        if(!node->is_symlink()) {
+            return -EINVAL;
+        }
+
+        if(node->size <= 60) {
+            size_t copy_size = kstd::min(size, node->size);
+            strncpy(path_buffer, (const char*)(uint64_t)node->ext2_inode().i_block, copy_size);
+            return copy_size;
+        }
+
+        return read(node, 0, size, (uint8_t *)path_buffer);
     }
 
     int ext2_volume::link(ext2_node* node, fs_node* file, directory_entry *ent) {

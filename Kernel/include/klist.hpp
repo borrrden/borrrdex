@@ -77,7 +77,7 @@ public:
     }
 
     T& add(const T& item) {
-        if(_size > _capacity) {
+        if(_size >= _capacity) {
             grow();
         }
 
@@ -90,7 +90,7 @@ public:
             return add(obj);
         }
 
-        if(_size > _capacity) {
+        if(_size >= _capacity) {
             grow();
         }
 
@@ -166,7 +166,7 @@ public:
 private:
     void grow() {
         _capacity *= 2;
-        void* new_mem = realloc(_mem, _capacity);
+        void* new_mem = realloc(_mem, sizeof(T) * _capacity);
         if(!new_mem) {
             const char* reasons[] = { "Out of memory!" };
             kernel_panic(reasons, 1);

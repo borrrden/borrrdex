@@ -63,7 +63,7 @@ namespace ahci {
 
         port->command_issue = (1 << slot);
         while(port->command_issue & (1 << slot)) {
-            timer::wait(100);
+            timer::wait(1);
         }
 
         if(spin == 1000000 || port->interrupt_status & ahci::PXIS_TFES_FLAG) {

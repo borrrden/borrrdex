@@ -12,8 +12,9 @@
     ],
     "C_Cpp.default.compilerPath": "/home/borrrden/.local/share/borrrdex/bin/clang++", 
     "C_Cpp.default.includePath": [
-        "../LibC/options/posix/include",
-        "../LibC/sysdeps/borrrdex/include",
-        "../LibBor/include"
-    ],
+        "${workspaceFolder}/LibC/options/posix/include",
+        "${workspaceFolder}/LibC/options/internal/include",
+        "${workspaceFolder}/LibC/sysdeps/borrrdex/include",
+        "${workspaceFolder}/LibBor/include"
+    ]
 }

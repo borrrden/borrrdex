@@ -1,0 +1,39 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/LibC/options/posix/include",
+                "${workspaceFolder}/LibC/sysdeps/borrrdex/include",
+                "${workspaceFolder}/LibBor/include",
+                "${workspaceFolder}/LibC/options/internal/include",
+                "${workspaceFolder}/LibC/options/posix/include",
+                "${workspaceFolder}/LibC/options/linux/include",
+                "${workspaceFolder}/LibC/options/elf/include"
+            ],
+            "defines": [],
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-clang-x64",
+            "compilerArgs": [
+                "-D__borrrdex__"
+            ],
+            "compilerPath": "/home/borrrden/.local/share/borrrdex/bin/clang++",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/LibC/options/posix/include",
+                    "${workspaceFolder}/LibC/options/internal/include",
+                    "${workspaceFolder}/LibC/sysdeps/borrrdex/include",
+                    "${workspaceFolder}/LibBor/include",
+                    "${workspaceFolder}/LibC/options/internal/include",
+                    "${workspaceFolder}/LibC/options/elf/include",
+                    "${workspaceFolder}/LibC/options/posix/include",
+                    "${workspaceFolder}/LibC/options/linux/include",
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

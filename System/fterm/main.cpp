@@ -189,13 +189,31 @@ static void do_ansi_sgr() {
     }
 }
 
+static void do_cursor(bool on) {
+    auto font_height = terminal_font.line_height;
+    auto color = on ? state.fg_color : state.bg_color;
+    draw_rect(current_pos.x * terminal_font.width, current_pos.y * font_height + (font_height / 4 * 3),
+            terminal_font.width, font_height / 4, colors[color], &render);
+}
+
+static void do_prompt() {
+    printf("borrrdex> ");
+    fflush(stdout);
+}
+
 static void scroll() {
-    while(current_pos.y-- >= w_size.ws_row) {
+    bool redraw = false;
+    while(current_pos.y >= w_size.ws_row) {
+        redraw = true;
         screen_buffer.erase(screen_buffer.begin());
         screen_buffer.emplace_back();
+
+        current_pos.y--;
     }
 
-    draw_rect(0, 0, render.width, render.height, colors[state.bg_color], &render);
+    if(redraw) {
+        draw_rect(0, 0, render.width, render.height, colors[state.bg_color], &render);
+    }
 }
 
 static void do_ansi_csi(char ch) {
@@ -305,7 +323,9 @@ static void print_char(char ch) {
                 esc_buffer[0] = 0;
                 break;
             case '\n':
+                do_cursor(false);
                 current_pos.y++;
+                do_prompt();
                 current_pos.x = 0;
                 scroll();
                 break;
@@ -336,6 +356,7 @@ static void print_char(char ch) {
                 if(current_pos.x > w_size.ws_col) {
                     current_pos.x = 0;
                     current_pos.y++;
+                    do_cursor(false);
                     scroll();
                 }
             }
@@ -369,12 +390,8 @@ static void paint() {
 	clock_gettime(CLOCK_BOOTTIME, &t);
     long msec = (t.tv_nsec / 1000000.0);
     uint8_t color = state.bg_color;
-    if((msec > 250 && msec < 500) || msec >= 750) {
-        color = state.fg_color;
-    }
 
-    draw_rect(current_pos.x * terminal_font.width, current_pos.y * font_height + (font_height / 4 * 3),
-            terminal_font.width, font_height / 4, colors[color], &render);
+    do_cursor((msec > 250 && msec < 500) || msec >= 750);
     surface_copy(&fb, &render);
 }
 
@@ -409,10 +426,16 @@ int main(int argc, char** argv) {
     char buf[512];
     bool do_paint = true;
     draw_rect(0, 0, render.width, render.height, colors[0], &render);
-    printf("borrrdex> ");
+    do_prompt();
+
+    termios initial_attr;
+    tcgetattr(STDOUT_FILENO, &initial_attr);
+    termios read_attr = initial_attr;
+    read_attr.c_lflag &= ~(ICANON | ECHO);
 
     while(true) {
         input.poll();
+        tcsetattr(STDOUT_FILENO, TCSANOW, &read_attr);
         while(int len = read(pty, buf, 512)) {
             for(int i = 0; i < len; i++) {
                 print_char(buf[i]);
@@ -420,6 +443,9 @@ int main(int argc, char** argv) {
 
             do_paint = true;
         }
+
+        fflush(stdout);
+        tcsetattr(STDOUT_FILENO, TCSANOW, &initial_attr);
 
         if(do_paint) {
             paint();

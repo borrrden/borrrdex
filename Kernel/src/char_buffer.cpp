@@ -72,7 +72,7 @@ namespace kstd {
         }
 
         for(unsigned i = 0; i < _size - size; i++) {
-            _buffer[i] = _buffer[size + 1];
+            _buffer[i] = _buffer[size + i];
         }
 
         _position -= size;

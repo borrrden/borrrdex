@@ -12,6 +12,19 @@ typedef int32_t mode_t;
 typedef int32_t nlink_t;
 typedef int64_t volume_id_t;
 
+typedef struct {
+    dev_t st_dev;
+    ino_t st_ino;
+    mode_t st_mode;
+    nlink_t st_nlink;
+    uid_t st_uid;
+    uid_t st_gid;
+    dev_t st_rdev;
+    off_t st_size;
+    int64_t st_blksize;
+    int64_t st_blocks;
+} stat_t;
+
 namespace fs {
     using fs_lock = kstd::read_write_lock;
 
@@ -82,7 +95,7 @@ namespace fs {
     ssize_t read(fs_fd_t* handle, size_t size, uint8_t* buffer);
     ssize_t write(fs_node* node, size_t off, size_t size, void* buffer);
     ssize_t write(fs_fd_t* handle, size_t size, uint8_t* buffer);
-    fs_fd_t* open(fs_node* node, uint32_t flags);
+    fs_fd_t* open(fs_node* node, uint32_t flags = 0);
     void close(fs_node* node);
     void close(fs_fd_t* fd);
     int ioctl(fs_fd_t* handle, uint64_t cmd, uint64_t arg);

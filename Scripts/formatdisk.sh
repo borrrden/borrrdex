@@ -45,16 +45,16 @@ mkdir -p /mnt/borrrdex/borrrdex/boot
 
 _unmount
 
-if [ -x "$(command -v limine-install)" ]; then
-    limine-install "${LOOPBACK_DEVICE}" 1
+if [ -x "$(command -v limine-install-linux-x86_64)" ]; then
+    limine-install-linux-x86_64 "${LOOPBACK_DEVICE}" 1
 else
     export PATH=$PATH:$HOME/.local/share/borrrdex/bin
-    if [ -x "$(command -v limine-install)" ]; then
-        limine-install "${LOOPBACK_DEVICE}" 1
-    elif [ -e "Toolchain/limine-2.0-bin/limine-install" ]; then
-        Toolchain/limine-2.0-bin/limine-install "${LOOPBACK_DEVICE}" 1
+    if [ -x "$(command -v limine-install-linux-x86_64)" ]; then
+        limine-install-linux-x86_64 "${LOOPBACK_DEVICE}" 1
+    elif [ -e "Toolchain/limine-2.0-bin/limine-install-linux-x86_64" ]; then
+        Toolchain/limine-2.0-bin/limine-install-linux-x86_64 "${LOOPBACK_DEVICE}" 1
     else
-        echo "Failed to find limine-install!"
+        echo "Failed to find limine-install-linux-x86_64!"
         _cleanup
         exit 1
     fi
